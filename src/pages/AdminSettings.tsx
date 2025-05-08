@@ -8,9 +8,12 @@ import DatabaseSettings from '@/components/admin/DatabaseSettings';
 import UserBalanceManager from '@/components/admin/UserBalanceManager';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { usePlatform } from '@/context/PlatformContext';
 
 const AdminSettings = () => {
   const { isAuthenticated, isAdmin } = useAuth();
+  const { platformName } = usePlatform();
   const [activeTab, setActiveTab] = useState<string>('general');
   
   if (!isAuthenticated) {
@@ -24,7 +27,13 @@ const AdminSettings = () => {
   return (
     <DashboardLayout>
       <div className="animate-fade-in">
-        <h1 className="text-2xl font-bold mb-6">إعدادات النظام</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">إعدادات النظام</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{platformName}</span>
+            <ThemeToggle />
+          </div>
+        </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="mb-4 flex flex-wrap">

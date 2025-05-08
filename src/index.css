@@ -1,59 +1,98 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 156 64% 40%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 226 100% 66%;
-    --accent-foreground: 210 40% 98%;
-
+    --background: 220 26% 14%;
+    --foreground: 0 0% 95%;
+    --card: 224 35% 9%;
+    --card-foreground: 0 0% 95%;
+    --popover: 224 35% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 22%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 14% 22%;
+    --muted-foreground: 220 8% 70%;
+    --accent: 220 14% 22%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 224 76% 48%;
-
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 25%;
+    --input: 220 13% 25%;
+    --ring: 224 71% 45%;
     --radius: 0.5rem;
   }
+ 
+  .dark {
+    --background: 224 35% 9%;
+    --foreground: 0 0% 95%;
+    --card: 224 35% 9%;
+    --card-foreground: 0 0% 95%;
+    --popover: 224 35% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 22%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 14% 22%;
+    --muted-foreground: 220 8% 70%;
+    --accent: 220 14% 22%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 25%;
+    --input: 220 13% 25%;
+    --ring: 224 71% 45%;
+  }
+  
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 224 35% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 35% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 35% 9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 14% 22%;
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 14% 40%;
+    --accent: 220 14% 92%;
+    --accent-foreground: 220 14% 22%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 86%;
+    --input: 220 13% 86%;
+    --ring: 221 83% 53%;
+  }
+}
 
+@layer base {
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground;
-    direction: rtl;
   }
 }
 
-@layer components {
-  .gradient-bg {
-    @apply bg-gradient-to-b from-[#1E293B] to-[#0F172A];
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  
-  .card-shadow {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  to {
+    opacity: 1;
   }
 }
+
+/* ... keep existing code */

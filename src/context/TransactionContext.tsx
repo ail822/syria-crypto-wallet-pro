@@ -54,15 +54,12 @@ interface TransactionContextType {
     fee_percentage?: number;
     enabled?: boolean;
   }) => void;
-  // Deposit Method Management
   depositMethods: DepositMethod[];
   addDepositMethod: (method: Omit<DepositMethod, 'id' | 'createdAt'>) => Promise<void>;
   updateDepositMethodStatus: (id: string, isActive: boolean) => Promise<void>;
-  // Withdrawal Method Management
   withdrawalMethods: WithdrawalMethodType[];
   addWithdrawalMethod: (method: Omit<WithdrawalMethodType, 'id' | 'createdAt'>) => Promise<void>;
   updateWithdrawalMethodStatus: (id: string, isActive: boolean) => Promise<void>;
-  // User Balance Management
   adjustUserBalance: (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => Promise<void>;
 }
 
@@ -193,7 +190,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         currency: 'usdt',
         status: 'pending',
         timestamp: new Date(),
-        screenshot
+        screenshot,
+        userId: user.id  // Add user ID to track ownership
       };
       
       setTransactions([...transactions, newTransaction]);
@@ -244,7 +242,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         timestamp: new Date(),
         depositMethodId: methodId,
         transactionId,
-        screenshot
+        screenshot,
+        userId: user.id // Add user ID to track ownership
       };
       
       setTransactions([...transactions, newTransaction]);
@@ -370,7 +369,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         title: 'تم إرسال طلب السحب بنجاح',
         description: method === 'c-wallet' 
           ? 'تم تنفيذ العملية بنجاح' 
-          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة الطلب من قبل الإدارة',
+          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة ال��لب من قبل الإدارة',
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -496,29 +495,36 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       updatedTransactions[transactionIndex] = updatedTransaction;
       setTransactions(updatedTransactions);
       
-      // Handle transaction status changes
-      if (status === 'completed') {
-        // For deposits, add the amount to user balance
-        if (transaction.type === 'deposit') {
-          // Find the user by looking for transactions with the same user ID
-          // In a real app, this would involve a database lookup
-          // For demo purposes, we'll use the current user
-          if (user) {
-            const updatedBalances = {
-              ...user.balances,
-              [transaction.currency]: user.balances[transaction.currency] + transaction.amount
-            };
-            updateUser({ balances: updatedBalances });
-          }
-        }
-        // For rejections of withdrawal requests, return the funds to the user
-      } else if (status === 'rejected' && transaction.type === 'withdrawal') {
-        if (user) {
+      // Handle deposit approval - add amount to user balance
+      if (status === 'completed' && transaction.type === 'deposit') {
+        // In a real app, find the user by userId stored in the transaction
+        // For now, we'll update the current user if they're the owner
+        if (user && transaction.userId === user.id) {
           const updatedBalances = {
             ...user.balances,
             [transaction.currency]: user.balances[transaction.currency] + transaction.amount
           };
           updateUser({ balances: updatedBalances });
+          
+          toast({
+            title: 'تمت الموافقة على الإيداع',
+            description: `تمت إضافة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيدك`,
+          });
+        }
+      } 
+      // Handle withdrawal rejection - return funds to user
+      else if (status === 'rejected' && transaction.type === 'withdrawal') {
+        if (user && transaction.userId === user.id) {
+          const updatedBalances = {
+            ...user.balances,
+            [transaction.currency]: user.balances[transaction.currency] + transaction.amount
+          };
+          updateUser({ balances: updatedBalances });
+          
+          toast({
+            title: 'تم رفض طلب السحب',
+            description: `تمت ��عادة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيدك`,
+          });
         }
       }
       

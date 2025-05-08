@@ -6,6 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTransaction } from '@/context/TransactionContext';
 import CardSection from '../ui/card-section';
+import PlatformSettings from './PlatformSettings';
+import CurrencyManager from './CurrencyManager';
 
 const AdminSettings = () => {
   const { exchangeRate, updateExchangeRate } = useTransaction();
@@ -52,6 +54,8 @@ const AdminSettings = () => {
 
   return (
     <div className="space-y-6">
+      <PlatformSettings />
+      
       <CardSection title="إعدادات أسعار الصرف والعمولات">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -61,7 +65,7 @@ const AdminSettings = () => {
               type="number"
               value={rates.usdt_to_syp}
               onChange={(e) => handleRateChange('usdt_to_syp', parseFloat(e.target.value))}
-              className="bg-[#242C3E] border-[#2A3348] text-white"
+              className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
             />
           </div>
           
@@ -73,7 +77,7 @@ const AdminSettings = () => {
               step="0.0000001"
               value={rates.syp_to_usdt}
               onChange={(e) => handleRateChange('syp_to_usdt', parseFloat(e.target.value))}
-              className="bg-[#242C3E] border-[#2A3348] text-white"
+              className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
             />
           </div>
           
@@ -85,7 +89,7 @@ const AdminSettings = () => {
               step="0.1"
               value={rates.fee_percentage}
               onChange={(e) => handleRateChange('fee_percentage', parseFloat(e.target.value))}
-              className="bg-[#242C3E] border-[#2A3348] text-white"
+              className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
             />
           </div>
           
@@ -104,6 +108,8 @@ const AdminSettings = () => {
         </div>
       </CardSection>
       
+      <CurrencyManager />
+      
       <CardSection title="إعدادات بوت تلجرام للمصادقة">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -112,21 +118,21 @@ const AdminSettings = () => {
               id="telegram_token"
               value={telegramSettings.botToken}
               onChange={(e) => handleTelegramChange('botToken', e.target.value)}
-              className="bg-[#242C3E] border-[#2A3348] text-white"
+              className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
             />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="bot_username">معرف البوت</Label>
             <div className="flex">
-              <span className="inline-flex items-center px-3 rounded-r-none rounded-md border border-l-0 border-[#2A3348] bg-[#1E293B] text-white">
+              <span className="inline-flex items-center px-3 rounded-r-none rounded-md border border-l-0 border-[#2A3348] bg-[#1E293B] text-white dark:border-[#2A3348] dark:bg-[#1E293B]">
                 @
               </span>
               <Input
                 id="bot_username"
                 value={telegramSettings.botUsername}
                 onChange={(e) => handleTelegramChange('botUsername', e.target.value)}
-                className="rounded-r-none bg-[#242C3E] border-[#2A3348] text-white"
+                className="rounded-r-none bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
               />
             </div>
           </div>
@@ -139,8 +145,8 @@ const AdminSettings = () => {
       
       <CardSection title="إعدادات متقدمة">
         <div className="space-y-4">
-          <div className="p-3 bg-yellow-900/20 rounded-md border border-yellow-800/30 mb-4">
-            <p className="text-sm text-yellow-300">
+          <div className="p-3 bg-yellow-900/20 dark:bg-yellow-900/20 rounded-md border border-yellow-800/30 dark:border-yellow-800/30 mb-4">
+            <p className="text-sm text-yellow-300 dark:text-yellow-300">
               تحذير: تؤثر هذه الإعدادات على أمان النظام. يرجى توخي الحذر عند التعديل.
             </p>
           </div>
@@ -151,7 +157,7 @@ const AdminSettings = () => {
               id="transaction_limit"
               type="number"
               defaultValue="1000"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
+              className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
             />
           </div>
           
