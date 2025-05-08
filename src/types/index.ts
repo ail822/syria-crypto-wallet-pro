@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -19,13 +18,14 @@ export interface Transaction {
   type: 'deposit' | 'withdrawal' | 'conversion';
   amount: number;
   currency: Currency;
-  targetCurrency?: Currency;
-  targetAmount?: number;
   status: 'pending' | 'completed' | 'rejected';
   timestamp: Date;
+  userId?: string; // أضفنا حقل userId كحقل اختياري
+  targetCurrency?: Currency;
+  targetAmount?: number;
   withdrawalMethod?: WithdrawalMethod;
-  depositMethodId?: string;
   withdrawalMethodId?: string;
+  depositMethodId?: string;
   transactionId?: string;
   recipient?: {
     name?: string;

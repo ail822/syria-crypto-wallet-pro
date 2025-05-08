@@ -24,10 +24,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("theme", theme);
     const root = window.document.documentElement;
     
+    // Remove both classes first
+    root.classList.remove("dark", "light");
+    
+    // Add the appropriate class
+    root.classList.add(theme);
+    
+    // Update the background color based on theme
     if (theme === "dark") {
-      root.classList.add("dark");
+      root.style.backgroundColor = "#121212";
     } else {
-      root.classList.remove("dark");
+      root.style.backgroundColor = "#ffffff";
     }
   }, [theme]);
 

@@ -66,6 +66,21 @@ const DepositForm = () => {
   return (
     <CardSection title="C-Wallet إيداع">
       <form onSubmit={handleSubmit} className="space-y-4">
+        {user && (
+          <div className="space-y-2">
+            <Label htmlFor="userEmail">البريد الإلكتروني</Label>
+            <Input
+              id="userEmail"
+              value={user.email}
+              readOnly
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+            <p className="text-sm text-muted-foreground">
+              سيتم إضافة المبلغ لهذا الحساب بعد موافقة الإدارة
+            </p>
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="walletId">معرف المحفظة ID</Label>
           <Input
