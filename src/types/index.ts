@@ -24,6 +24,9 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'rejected';
   timestamp: Date;
   withdrawalMethod?: WithdrawalMethod;
+  depositMethodId?: string;
+  withdrawalMethodId?: string;
+  transactionId?: string;
   recipient?: {
     name?: string;
     phoneNumber?: string;
@@ -46,4 +49,26 @@ export interface AdminSettings {
   exchangeRates: ExchangeRate;
   telegramBotToken: string;
   telegramBotUsername: string;
+}
+
+export interface DepositMethod {
+  id: string;
+  name: string;
+  description?: string;
+  acceptedCurrency: Currency;
+  isActive: boolean;
+  requiresImage: boolean;
+  requiresTransactionId: boolean;
+  createdAt: Date;
+}
+
+export interface WithdrawalMethodType {
+  id: string;
+  name: string;
+  description?: string;
+  supportedCurrency: Currency;
+  isActive: boolean;
+  requiresApproval: boolean;
+  feePercentage: number;
+  createdAt: Date;
 }

@@ -1,18 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import BalanceCard from '@/components/dashboard/BalanceCard';
 import ActivityChart from '@/components/dashboard/ActivityChart';
 import DepositForm from '@/components/forms/DepositForm';
+import CustomDepositForm from '@/components/forms/CustomDepositForm';
 import ConversionForm from '@/components/forms/ConversionForm';
 import WithdrawalForm from '@/components/forms/WithdrawalForm';
+import CustomWithdrawalForm from '@/components/forms/CustomWithdrawalForm';
 import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
+  const [showNewForms, setShowNewForms] = useState(true);
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
@@ -36,13 +39,13 @@ const Dashboard = () => {
               <TabsTrigger value="withdrawal">سحب</TabsTrigger>
             </TabsList>
             <TabsContent value="deposit">
-              <DepositForm />
+              {showNewForms ? <CustomDepositForm /> : <DepositForm />}
             </TabsContent>
             <TabsContent value="conversion">
               <ConversionForm />
             </TabsContent>
             <TabsContent value="withdrawal">
-              <WithdrawalForm />
+              {showNewForms ? <CustomWithdrawalForm /> : <WithdrawalForm />}
             </TabsContent>
           </Tabs>
         </Card>

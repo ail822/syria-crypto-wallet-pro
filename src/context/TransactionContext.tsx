@@ -1,15 +1,31 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { Transaction, Currency, WithdrawalMethod } from '@/types';
+import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType } from '@/types';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 
 interface TransactionContextType {
   transactions: Transaction[];
   depositRequest: (amount: number, walletId: string, screenshot: string) => Promise<void>;
+  depositRequestWithMethod: (
+    methodId: string,
+    amount: number,
+    transactionId?: string,
+    screenshot?: string
+  ) => Promise<void>;
   convertCurrency: (fromCurrency: Currency, toCurrency: Currency, amount: number) => Promise<void>;
   withdrawRequest: (
     method: WithdrawalMethod,
+    amount: number,
+    currency: Currency,
+    recipientData: {
+      name?: string;
+      phoneNumber?: string;
+      province?: string;
+      walletId?: string;
+    }
+  ) => Promise<void>;
+  withdrawRequestWithMethod: (
+    methodId: string,
     amount: number,
     currency: Currency,
     recipientData: {
@@ -38,6 +54,14 @@ interface TransactionContextType {
     fee_percentage?: number;
     enabled?: boolean;
   }) => void;
+  // Deposit Method Management
+  depositMethods: DepositMethod[];
+  addDepositMethod: (method: Omit<DepositMethod, 'id' | 'createdAt'>) => Promise<void>;
+  updateDepositMethodStatus: (id: string, isActive: boolean) => Promise<void>;
+  // Withdrawal Method Management
+  withdrawalMethods: WithdrawalMethodType[];
+  addWithdrawalMethod: (method: Omit<WithdrawalMethodType, 'id' | 'createdAt'>) => Promise<void>;
+  updateWithdrawalMethodStatus: (id: string, isActive: boolean) => Promise<void>;
 }
 
 // Sample mock transactions
@@ -84,10 +108,70 @@ const mockTransactions: Transaction[] = [
   }
 ];
 
+// Sample mock deposit methods
+const mockDepositMethods: DepositMethod[] = [
+  {
+    id: 'dep1',
+    name: 'C-Wallet',
+    description: 'إيداع مباشر عبر محفظة C-Wallet',
+    acceptedCurrency: 'usdt',
+    isActive: true,
+    requiresImage: true,
+    requiresTransactionId: false,
+    createdAt: new Date('2023-01-01')
+  },
+  {
+    id: 'dep2',
+    name: 'حوالة بنكية',
+    description: 'إيداع عبر التحويل البنكي',
+    acceptedCurrency: 'syp',
+    isActive: true,
+    requiresImage: true,
+    requiresTransactionId: true,
+    createdAt: new Date('2023-01-05')
+  }
+];
+
+// Sample mock withdrawal methods
+const mockWithdrawalMethods: WithdrawalMethodType[] = [
+  {
+    id: 'with1',
+    name: 'C-Wallet',
+    description: 'سحب مباشر إلى محفظة C-Wallet',
+    supportedCurrency: 'usdt',
+    isActive: true,
+    requiresApproval: false,
+    feePercentage: 1,
+    createdAt: new Date('2023-01-01')
+  },
+  {
+    id: 'with2',
+    name: 'المحافظات',
+    description: 'سحب نقدي في المحافظات السورية',
+    supportedCurrency: 'syp',
+    isActive: true,
+    requiresApproval: true,
+    feePercentage: 2,
+    createdAt: new Date('2023-01-02')
+  },
+  {
+    id: 'with3',
+    name: 'MTN Cash',
+    description: 'سحب عبر خدمة MTN Cash',
+    supportedCurrency: 'syp',
+    isActive: true,
+    requiresApproval: true,
+    feePercentage: 1.5,
+    createdAt: new Date('2023-01-03')
+  }
+];
+
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const [depositMethods, setDepositMethods] = useState<DepositMethod[]>(mockDepositMethods);
+  const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethodType[]>(mockWithdrawalMethods);
   const { user, updateUser } = useAuth();
   const [exchangeRate, setExchangeRate] = useState({
     usdt_to_syp: 5000, // 1 USDT = 5000 SYP
@@ -107,6 +191,57 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         currency: 'usdt',
         status: 'pending',
         timestamp: new Date(),
+        screenshot
+      };
+      
+      setTransactions([...transactions, newTransaction]);
+      toast({
+        title: 'تم إرسال طلب الإيداع بنجاح',
+        description: 'سيتم مراجعة الطلب من قبل الإدارة',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+
+  const depositRequestWithMethod = async (
+    methodId: string,
+    amount: number,
+    transactionId?: string,
+    screenshot?: string
+  ) => {
+    try {
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+      
+      const method = depositMethods.find(m => m.id === methodId);
+      if (!method) throw new Error('طريقة الإيداع غير موجودة');
+      
+      if (!method.isActive) throw new Error('طريقة الإيداع غير متاحة حالياً');
+      
+      if (method.requiresTransactionId && !transactionId) {
+        throw new Error('رقم العملية مطلوب');
+      }
+      
+      if (method.requiresImage && !screenshot) {
+        throw new Error('صورة إثبات التحويل مطلوبة');
+      }
+      
+      const newTransaction: Transaction = {
+        id: Math.random().toString(36).substring(2, 11),
+        type: 'deposit',
+        amount,
+        currency: method.acceptedCurrency,
+        status: 'pending',
+        timestamp: new Date(),
+        depositMethodId: methodId,
+        transactionId,
         screenshot
       };
       
@@ -248,6 +383,70 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  const withdrawRequestWithMethod = async (
+    methodId: string,
+    amount: number,
+    currency: Currency,
+    recipientData: {
+      name?: string;
+      phoneNumber?: string;
+      province?: string;
+      walletId?: string;
+    }
+  ) => {
+    try {
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+      
+      const method = withdrawalMethods.find(m => m.id === methodId);
+      if (!method) throw new Error('طريقة السحب غير موجودة');
+      
+      if (!method.isActive) throw new Error('طريقة السحب غير متاحة حالياً');
+      
+      // Check if user has enough balance
+      if (user.balances[currency] < amount) {
+        throw new Error('رصيد غير كافي');
+      }
+      
+      const newTransaction: Transaction = {
+        id: Math.random().toString(36).substring(2, 11),
+        type: 'withdrawal',
+        amount,
+        currency,
+        status: method.requiresApproval ? 'pending' : 'completed',
+        timestamp: new Date(),
+        withdrawalMethodId: methodId,
+        recipient: recipientData
+      };
+      
+      setTransactions([...transactions, newTransaction]);
+      
+      // If it does not require approval, update balance immediately
+      if (!method.requiresApproval) {
+        const updatedBalances = {
+          ...user.balances,
+          [currency]: user.balances[currency] - amount
+        };
+        updateUser({ balances: updatedBalances });
+      }
+      
+      toast({
+        title: 'تم إرسال طلب السحب بنجاح',
+        description: method.requiresApproval 
+          ? 'سيتم مراجعة الطلب من قبل الإدارة' 
+          : 'تم تنفيذ العملية بنجاح',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+
   const getFilteredTransactions = (
     startDate?: Date,
     endDate?: Date,
@@ -348,16 +547,126 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     });
   };
 
+  // Deposit methods management
+  const addDepositMethod = async (method: Omit<DepositMethod, 'id' | 'createdAt'>) => {
+    try {
+      const newMethod: DepositMethod = {
+        ...method,
+        id: Math.random().toString(36).substring(2, 9),
+        createdAt: new Date(),
+      };
+      
+      setDepositMethods([...depositMethods, newMethod]);
+      
+      toast({
+        title: 'تمت الإضافة بنجاح',
+        description: 'تم إضافة طريقة الإيداع الجديدة',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+  
+  const updateDepositMethodStatus = async (id: string, isActive: boolean) => {
+    try {
+      const updatedMethods = depositMethods.map(method => 
+        method.id === id ? { ...method, isActive } : method
+      );
+      
+      setDepositMethods(updatedMethods);
+      
+      toast({
+        title: 'تم تحديث الحالة',
+        description: `تم ${isActive ? 'تفعيل' : 'تعطيل'} طريقة الإيداع بنجاح`,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+  
+  // Withdrawal methods management
+  const addWithdrawalMethod = async (method: Omit<WithdrawalMethodType, 'id' | 'createdAt'>) => {
+    try {
+      const newMethod: WithdrawalMethodType = {
+        ...method,
+        id: Math.random().toString(36).substring(2, 9),
+        createdAt: new Date(),
+      };
+      
+      setWithdrawalMethods([...withdrawalMethods, newMethod]);
+      
+      toast({
+        title: 'تمت الإضافة بنجاح',
+        description: 'تم إضافة طريقة السحب الجديدة',
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+  
+  const updateWithdrawalMethodStatus = async (id: string, isActive: boolean) => {
+    try {
+      const updatedMethods = withdrawalMethods.map(method => 
+        method.id === id ? { ...method, isActive } : method
+      );
+      
+      setWithdrawalMethods(updatedMethods);
+      
+      toast({
+        title: 'تم تحديث الحالة',
+        description: `تم ${isActive ? 'تفعيل' : 'تعطيل'} طريقة السحب بنجاح`,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
       depositRequest,
+      depositRequestWithMethod,
       convertCurrency,
       withdrawRequest,
+      withdrawRequestWithMethod,
       getFilteredTransactions,
       updateTransactionStatus,
       exchangeRate,
-      updateExchangeRate
+      updateExchangeRate,
+      depositMethods,
+      addDepositMethod,
+      updateDepositMethodStatus,
+      withdrawalMethods,
+      addWithdrawalMethod,
+      updateWithdrawalMethodStatus
     }}>
       {children}
     </TransactionContext.Provider>
