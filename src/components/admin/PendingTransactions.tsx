@@ -53,7 +53,12 @@ const PendingTransactions = () => {
     try {
       setIsLoading(true);
       await updateTransactionStatus(selectedTransaction.id, 'rejected');
-      toast({ title: 'تم رفض المعاملة' });
+      toast({ 
+        title: 'تم رفض المعاملة',
+        description: selectedTransaction.type === 'withdrawal' 
+          ? 'تم إرجاع المبلغ إلى رصيد المستخدم' 
+          : undefined 
+      });
       setShowRejectDialog(false);
     } catch (error) {
       toast({ 

@@ -62,6 +62,8 @@ interface TransactionContextType {
   withdrawalMethods: WithdrawalMethodType[];
   addWithdrawalMethod: (method: Omit<WithdrawalMethodType, 'id' | 'createdAt'>) => Promise<void>;
   updateWithdrawalMethodStatus: (id: string, isActive: boolean) => Promise<void>;
+  // User Balance Management
+  adjustUserBalance: (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => Promise<void>;
 }
 
 // Sample mock transactions
@@ -343,6 +345,14 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         throw new Error('رصيد غير كافي');
       }
       
+      // For all withdrawal methods, deduct the balance immediately upon request
+      // This is a change from the original behavior where only c-wallet was immediate
+      const updatedBalances = {
+        ...user.balances,
+        [currency]: user.balances[currency] - amount
+      };
+      updateUser({ balances: updatedBalances });
+      
       const newTransaction: Transaction = {
         id: Math.random().toString(36).substring(2, 11),
         type: 'withdrawal',
@@ -356,20 +366,11 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       setTransactions([...transactions, newTransaction]);
       
-      // If it's a C-Wallet withdrawal, update balance immediately
-      if (method === 'c-wallet') {
-        const updatedBalances = {
-          ...user.balances,
-          [currency]: user.balances[currency] - amount
-        };
-        updateUser({ balances: updatedBalances });
-      }
-      
       toast({
         title: 'تم إرسال طلب السحب بنجاح',
         description: method === 'c-wallet' 
           ? 'تم تنفيذ العملية بنجاح' 
-          : 'سيتم مراجعة الطلب من قبل الإدارة',
+          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة الطلب من قبل الإدارة',
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -407,6 +408,13 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         throw new Error('رصيد غير كافي');
       }
       
+      // For all withdrawal methods, deduct the balance immediately upon request
+      const updatedBalances = {
+        ...user.balances,
+        [currency]: user.balances[currency] - amount
+      };
+      updateUser({ balances: updatedBalances });
+      
       const newTransaction: Transaction = {
         id: Math.random().toString(36).substring(2, 11),
         type: 'withdrawal',
@@ -420,19 +428,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       
       setTransactions([...transactions, newTransaction]);
       
-      // If it does not require approval, update balance immediately
-      if (!method.requiresApproval) {
-        const updatedBalances = {
-          ...user.balances,
-          [currency]: user.balances[currency] - amount
-        };
-        updateUser({ balances: updatedBalances });
-      }
-      
       toast({
         title: 'تم إرسال طلب السحب بنجاح',
         description: method.requiresApproval 
-          ? 'سيتم مراجعة الطلب من قبل الإدارة' 
+          ? 'تم خصم المبلغ من رصيدك وسيتم مراجعة الطلب من قبل الإدارة' 
           : 'تم تنفيذ العملية بنجاح',
       });
     } catch (error) {
@@ -497,18 +496,27 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       updatedTransactions[transactionIndex] = updatedTransaction;
       setTransactions(updatedTransactions);
       
-      // If approved and it's a deposit or pending withdrawal, update user balance
-      if (status === 'completed' && user) {
+      // Handle transaction status changes
+      if (status === 'completed') {
+        // For deposits, add the amount to user balance
         if (transaction.type === 'deposit') {
+          // Find the user by looking for transactions with the same user ID
+          // In a real app, this would involve a database lookup
+          // For demo purposes, we'll use the current user
+          if (user) {
+            const updatedBalances = {
+              ...user.balances,
+              [transaction.currency]: user.balances[transaction.currency] + transaction.amount
+            };
+            updateUser({ balances: updatedBalances });
+          }
+        }
+        // For rejections of withdrawal requests, return the funds to the user
+      } else if (status === 'rejected' && transaction.type === 'withdrawal') {
+        if (user) {
           const updatedBalances = {
             ...user.balances,
             [transaction.currency]: user.balances[transaction.currency] + transaction.amount
-          };
-          updateUser({ balances: updatedBalances });
-        } else if (transaction.type === 'withdrawal' && transaction.status === 'pending') {
-          const updatedBalances = {
-            ...user.balances,
-            [transaction.currency]: user.balances[transaction.currency] - transaction.amount
           };
           updateUser({ balances: updatedBalances });
         }
@@ -649,6 +657,69 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
+  // New method for admin to adjust user balance
+  const adjustUserBalance = async (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => {
+    try {
+      // In a real app, this would involve a database lookup
+      // For demo, we'll update the current user if emails match
+      if (user && user.email === email) {
+        const currentBalance = user.balances[currency];
+        let newBalance = currentBalance;
+        
+        if (operation === 'add') {
+          newBalance = currentBalance + amount;
+        } else {
+          // Check if there's enough balance for subtraction
+          if (currentBalance < amount) {
+            throw new Error('رصيد المستخدم غير كافي للخصم');
+          }
+          newBalance = currentBalance - amount;
+        }
+        
+        const updatedBalances = {
+          ...user.balances,
+          [currency]: newBalance
+        };
+        
+        updateUser({ balances: updatedBalances });
+        
+        // Create a transaction record for the adjustment
+        const newTransaction: Transaction = {
+          id: Math.random().toString(36).substring(2, 11),
+          type: operation === 'add' ? 'deposit' : 'withdrawal',
+          amount,
+          currency,
+          status: 'completed',
+          timestamp: new Date(),
+        };
+        
+        setTransactions([...transactions, newTransaction]);
+        
+        toast({
+          title: 'تم تعديل الرصيد بنجاح',
+          description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${email}`,
+        });
+      } else {
+        // In a real app, we would look up the user
+        // For demo, we'll simulate success
+        toast({
+          title: 'تم تعديل الرصيد بنجاح',
+          description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${email}`,
+        });
+      }
+      
+    } catch (error) {
+      if (error instanceof Error) {
+        toast({
+          title: 'حدث خطأ',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+      throw error;
+    }
+  };
+
   return (
     <TransactionContext.Provider value={{
       transactions,
@@ -666,7 +737,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       updateDepositMethodStatus,
       withdrawalMethods,
       addWithdrawalMethod,
-      updateWithdrawalMethodStatus
+      updateWithdrawalMethodStatus,
+      adjustUserBalance
     }}>
       {children}
     </TransactionContext.Provider>
