@@ -11,21 +11,21 @@ export interface User {
   };
 }
 
-export type Currency = 'usdt' | 'syp';
+export type Currency = 'usdt' | 'syp' | string;
 
-export interface Transaction {
+export type Transaction = {
   id: string;
   type: 'deposit' | 'withdrawal' | 'conversion';
   amount: number;
   currency: Currency;
-  status: 'pending' | 'completed' | 'rejected';
-  timestamp: Date;
-  userId?: string; // أضفنا حقل userId كحقل اختياري
   targetCurrency?: Currency;
   targetAmount?: number;
+  status: 'pending' | 'completed' | 'rejected';
+  timestamp: Date;
   withdrawalMethod?: WithdrawalMethod;
   withdrawalMethodId?: string;
   depositMethodId?: string;
+  screenshot?: string;
   transactionId?: string;
   recipient?: {
     name?: string;
@@ -33,8 +33,8 @@ export interface Transaction {
     province?: string;
     walletId?: string;
   };
-  screenshot?: string;
-}
+  userId?: string;
+};
 
 export type WithdrawalMethod = 'province' | 'mtn' | 'syriatel' | 'c-wallet';
 

@@ -21,6 +21,12 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
     
     // تحديث عنوان الصفحة أيضًا
     document.title = platformName;
+
+    // تحديث اسم المنصة في الـ HTML للتأكد من تغييره في كل مكان
+    const platformNameElements = document.querySelectorAll('.platform-name');
+    platformNameElements.forEach(element => {
+      element.textContent = platformName;
+    });
   }, [platformName]);
 
   const updatePlatformName = (name: string) => {

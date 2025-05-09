@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { useTransaction } from '@/context/TransactionContext';
@@ -7,8 +6,35 @@ import { useTransaction } from '@/context/TransactionContext';
 const BalanceCard = () => {
   const { user } = useAuth();
   const { exchangeRate } = useTransaction();
+  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{code: string, name: string, exchangeRate: number}>>([]);
+  
+  // تحميل العملات المدعومة
+  useEffect(() => {
+    const savedCurrencies = localStorage.getItem('supportedCurrencies');
+    if (savedCurrencies) {
+      setSupportedCurrencies(JSON.parse(savedCurrencies));
+    }
+  }, []);
   
   if (!user) return null;
+
+  // إنشاء أرصدة افتراضية للعملات المضافة مؤخرا إذا لم تكن موجودة
+  const getBalanceForCurrency = (code: string) => {
+    return (user.balances as any)[code] !== undefined ? (user.balances as any)[code] : 0;
+  };
+
+  // تحديد ألوان مختلفة للعملات
+  const getCurrencyColor = (index: number) => {
+    const colors = [
+      "from-blue-600 to-indigo-700", // USDT
+      "from-emerald-600 to-teal-700", // SYP
+      "from-purple-600 to-indigo-700",
+      "from-rose-600 to-pink-700",
+      "from-amber-600 to-yellow-700",
+      "from-sky-600 to-blue-700"
+    ];
+    return colors[index % colors.length];
+  };
 
   return (
     <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
@@ -41,6 +67,29 @@ const BalanceCard = () => {
               </div>
             </div>
           </div>
+          
+          {/* Other Currencies */}
+          {supportedCurrencies
+            .filter(currency => currency.code !== 'usdt' && currency.code !== 'syp')
+            .map((currency, index) => (
+              <div 
+                key={currency.code}
+                className={`bg-gradient-to-br ${getCurrencyColor(index + 2)} rounded-xl p-4 text-white shadow-lg`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm opacity-80">رصيد {currency.name}</p>
+                    <p className="text-2xl font-bold mt-1">
+                      {getBalanceForCurrency(currency.code).toLocaleString()} {currency.code.toUpperCase()}
+                    </p>
+                  </div>
+                  <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
+                    <span className="font-bold">{currency.code.toUpperCase()}</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          }
         </div>
         
         {/* Exchange Rate Info */}

@@ -3,9 +3,11 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import LoginForm from '@/components/auth/LoginForm';
+import { usePlatform } from '@/context/PlatformContext';
 
 const Login = () => {
   const { isAuthenticated } = useAuth();
+  const { platformName } = usePlatform();
   
   if (isAuthenticated) {
     return <Navigate to="/" />;
@@ -15,7 +17,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center gradient-bg">
       <div className="w-full max-w-md p-6 animate-slide-in">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">C-Wallet Pro</h1>
+          <h1 className="text-3xl font-bold text-white mb-2 platform-name">{platformName}</h1>
           <p className="text-muted-foreground">تسجيل الدخول إلى حسابك</p>
         </div>
         

@@ -23,10 +23,21 @@ const DatabaseSettings = () => {
     const savedSettings = localStorage.getItem('dbSettings');
     
     if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      setDbSettings(parsed);
-      // إذا كانت هناك إعدادات محفوظة، نفترض أن الاتصال كان ناجحًا
-      setConnectionStatus('success');
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setDbSettings(parsed);
+        
+        // تحقق إذا كان قد تم الاتصال بنجاح من قبل
+        const dbConnectionStatus = localStorage.getItem('dbConnectionStatus');
+        if (dbConnectionStatus === 'success') {
+          setConnectionStatus('success');
+        } else {
+          setConnectionStatus(null);
+        }
+      } catch (error) {
+        console.error("Error loading database settings:", error);
+        setConnectionStatus(null);
+      }
     } else {
       setDbSettings({
         host: 'localhost',
@@ -42,6 +53,9 @@ const DatabaseSettings = () => {
     setDbSettings({ ...dbSettings, [field]: value });
     // Reset connection status when settings change
     if (connectionStatus) setConnectionStatus(null);
+    
+    // إزالة حالة الاتصال من التخزين المحلي عند تغيير الإعدادات
+    localStorage.removeItem('dbConnectionStatus');
   };
 
   const testConnection = () => {
@@ -53,6 +67,7 @@ const DatabaseSettings = () => {
       // For demo purposes, we'll simulate success if all fields are filled
       if (dbSettings.host && dbSettings.dbName && dbSettings.username && dbSettings.password) {
         setConnectionStatus('success');
+        localStorage.setItem('dbConnectionStatus', 'success');
         toast({
           title: "تم الاتصال بنجاح",
           description: "تم الاتصال بقاعدة البيانات بنجاح واختبار الاعتمادات",
@@ -62,6 +77,7 @@ const DatabaseSettings = () => {
         localStorage.setItem('dbSettings', JSON.stringify(dbSettings));
       } else {
         setConnectionStatus('failed');
+        localStorage.setItem('dbConnectionStatus', 'failed');
         toast({
           title: "فشل الاتصال",
           description: "تعذر الاتصال بقاعدة البيانات. يرجى التحقق من المعلومات المدخلة.",

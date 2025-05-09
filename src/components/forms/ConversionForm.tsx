@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTransaction } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
 import { Currency } from '@/types';
@@ -14,23 +14,48 @@ const ConversionForm = () => {
   const { convertCurrency, exchangeRate } = useTransaction();
   const { user } = useAuth();
   const [fromCurrency, setFromCurrency] = useState<Currency>('usdt');
+  const [toCurrency, setToCurrency] = useState<Currency>('syp');
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{code: string, name: string, exchangeRate: number}>>([]);
+  
+  // تحميل العملات المدعومة
+  useEffect(() => {
+    const savedCurrencies = localStorage.getItem('supportedCurrencies');
+    if (savedCurrencies) {
+      setSupportedCurrencies(JSON.parse(savedCurrencies));
+    } else {
+      setSupportedCurrencies([
+        { code: 'usdt', name: 'USDT', exchangeRate: 1 },
+        { code: 'syp', name: 'الليرة السورية', exchangeRate: exchangeRate.usdt_to_syp }
+      ]);
+    }
+  }, []);
+
+  // حساب سعر الصرف بين أي عملتين
+  const getExchangeRate = (from: string, to: string) => {
+    // البحث عن العملات في المصفوفة
+    const fromCurrencyObj = supportedCurrencies.find(c => c.code === from);
+    const toCurrencyObj = supportedCurrencies.find(c => c.code === to);
+    
+    if (!fromCurrencyObj || !toCurrencyObj) return 0;
+    
+    // حساب سعر الصرف نسبة إلى USDT
+    return toCurrencyObj.exchangeRate / fromCurrencyObj.exchangeRate;
+  };
   
   // Calculate the estimated result
   const calculateEstimatedResult = () => {
     if (!amount || isNaN(parseFloat(amount))) return '0';
     
     const numAmount = parseFloat(amount);
-    const fee = (numAmount * exchangeRate.fee_percentage) / 100;
+    const rate = getExchangeRate(fromCurrency, toCurrency);
+    const convertedAmount = numAmount * rate;
+    const fee = (convertedAmount * exchangeRate.fee_percentage) / 100;
+    const finalAmount = convertedAmount - fee;
     
-    if (fromCurrency === 'usdt') {
-      const syp = (numAmount * exchangeRate.usdt_to_syp) - (exchangeRate.usdt_to_syp * fee);
-      return syp.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' ل.س';
-    } else {
-      const usdt = (numAmount * exchangeRate.syp_to_usdt) - (exchangeRate.syp_to_usdt * fee);
-      return usdt.toFixed(2) + ' USDT';
-    }
+    return finalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ` ${toCurrency.toUpperCase()}`;
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -40,6 +65,15 @@ const ConversionForm = () => {
       toast({
         title: "خطأ في المبلغ",
         description: "يرجى إدخال مبلغ صحيح للتحويل",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (fromCurrency === toCurrency) {
+      toast({
+        title: "خطأ في اختيار العملات",
+        description: "لا يمكن التحويل بين نفس العملة",
         variant: "destructive",
       });
       return;
@@ -57,8 +91,7 @@ const ConversionForm = () => {
     
     try {
       setIsLoading(true);
-      const toCurrency = fromCurrency === 'usdt' ? 'syp' : 'usdt';
-      await convertCurrency(fromCurrency, toCurrency, parseFloat(amount));
+      await convertCurrency(fromCurrency as Currency, toCurrency as Currency, parseFloat(amount));
       setAmount('');
     } catch (error) {
       console.error("Error converting currency:", error);
@@ -70,33 +103,55 @@ const ConversionForm = () => {
   return (
     <CardSection title="تحويل العملات">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label>اختر العملة المصدر</Label>
-          <RadioGroup 
-            value={fromCurrency} 
-            onValueChange={(value) => setFromCurrency(value as Currency)}
-            className="flex gap-4"
-          >
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="usdt" id="usdt" />
-              <Label htmlFor="usdt" className="font-medium">USDT</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="syp" id="syp" />
-              <Label htmlFor="syp" className="font-medium">ليرة سورية</Label>
-            </div>
-          </RadioGroup>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fromCurrency">العملة المصدر</Label>
+            <Select 
+              value={fromCurrency} 
+              onValueChange={(value) => setFromCurrency(value as Currency)}
+            >
+              <SelectTrigger className="bg-[#242C3E] border-[#2A3348] text-white">
+                <SelectValue placeholder="اختر العملة المصدر" />
+              </SelectTrigger>
+              <SelectContent>
+                {supportedCurrencies.map((currency) => (
+                  <SelectItem key={`from-${currency.code}`} value={currency.code}>
+                    {currency.name} ({currency.code.toUpperCase()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="toCurrency">العملة الهدف</Label>
+            <Select 
+              value={toCurrency} 
+              onValueChange={(value) => setToCurrency(value as Currency)}
+            >
+              <SelectTrigger className="bg-[#242C3E] border-[#2A3348] text-white">
+                <SelectValue placeholder="اختر العملة الهدف" />
+              </SelectTrigger>
+              <SelectContent>
+                {supportedCurrencies.map((currency) => (
+                  <SelectItem key={`to-${currency.code}`} value={currency.code}>
+                    {currency.name} ({currency.code.toUpperCase()})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="amount">
-            المبلغ ({fromCurrency === 'usdt' ? 'USDT' : 'ل.س'})
+            المبلغ ({fromCurrency.toUpperCase()})
           </Label>
           <Input
             id="amount"
             type="number"
-            step={fromCurrency === 'usdt' ? '0.01' : '1'}
-            placeholder={`أدخل المبلغ بالـ ${fromCurrency === 'usdt' ? 'USDT' : 'ليرة السورية'}`}
+            step="0.01"
+            placeholder={`أدخل المبلغ بالـ ${fromCurrency.toUpperCase()}`}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
@@ -109,12 +164,10 @@ const ConversionForm = () => {
           <div className="bg-[#242C3E] p-3 rounded-md border border-[#2A3348]">
             <div className="flex justify-between items-center mb-1">
               <span className="text-muted-foreground text-sm">
-                {fromCurrency === 'usdt' ? '1 USDT =' : '1 SYP ='}
+                {`1 ${fromCurrency.toUpperCase()} =`}
               </span>
               <span className="text-white">
-                {fromCurrency === 'usdt' 
-                  ? `${exchangeRate.usdt_to_syp.toLocaleString()} ل.س` 
-                  : `${exchangeRate.syp_to_usdt.toFixed(6)} USDT`}
+                {getExchangeRate(fromCurrency, toCurrency).toFixed(4)} {toCurrency.toUpperCase()}
               </span>
             </div>
             <div className="flex justify-between items-center mb-1">
@@ -131,7 +184,7 @@ const ConversionForm = () => {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoading || !exchangeRate.enabled}
+          disabled={isLoading || !exchangeRate.enabled || !amount || fromCurrency === toCurrency}
         >
           {isLoading 
             ? "جاري تنفيذ التحويل..." 

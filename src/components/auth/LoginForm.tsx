@@ -79,12 +79,6 @@ const LoginForm = () => {
             إنشاء حساب جديد
           </a>
         </p>
-        
-        <div className="mt-4 text-xs text-gray-500">
-          <p>للتجربة، استخدم:</p>
-          <p>المستخدم العادي: user@example.com / password</p>
-          <p>المدير: admin@example.com / admin</p>
-        </div>
       </div>
     </form>
   );

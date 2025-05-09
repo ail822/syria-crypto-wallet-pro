@@ -73,16 +73,16 @@ const CurrencyManager = () => {
     
     // إضافة العملة الجديدة
     setTimeout(() => {
-      const updatedCurrencies = [
-        ...supportedCurrencies,
-        {
-          code: currencyCode,
-          name: newCurrency.name,
-          exchangeRate: parseFloat(newCurrency.exchangeRate)
-        }
-      ];
+      const newCurrencyObj = {
+        code: currencyCode,
+        name: newCurrency.name,
+        exchangeRate: parseFloat(newCurrency.exchangeRate)
+      };
+      
+      const updatedCurrencies = [...supportedCurrencies, newCurrencyObj];
       
       setSupportedCurrencies(updatedCurrencies);
+      localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
       
       // Reset form
       setNewCurrency({
@@ -113,6 +113,7 @@ const CurrencyManager = () => {
     
     const updatedCurrencies = supportedCurrencies.filter(c => c.code !== code);
     setSupportedCurrencies(updatedCurrencies);
+    localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
     
     toast({
       title: "تم الحذف",
