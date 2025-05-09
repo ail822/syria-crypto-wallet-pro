@@ -67,18 +67,33 @@ const DepositForm = () => {
     <CardSection title="C-Wallet إيداع">
       <form onSubmit={handleSubmit} className="space-y-4">
         {user && (
-          <div className="space-y-2">
-            <Label htmlFor="userEmail">البريد الإلكتروني</Label>
-            <Input
-              id="userEmail"
-              value={user.email}
-              readOnly
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="userEmail">البريد الإلكتروني</Label>
+              <Input
+                id="userEmail"
+                value={user.email}
+                readOnly
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-[#1E293B] rounded-lg">
+                <div className="text-sm text-muted-foreground">رصيد USDT</div>
+                <div className="text-xl font-bold">{user.balances.usdt.toLocaleString()}</div>
+              </div>
+              
+              <div className="p-4 bg-[#1E293B] rounded-lg">
+                <div className="text-sm text-muted-foreground">رصيد الليرة السورية</div>
+                <div className="text-xl font-bold">{user.balances.syp.toLocaleString()}</div>
+              </div>
+            </div>
+            
             <p className="text-sm text-muted-foreground">
               سيتم إضافة المبلغ لهذا الحساب بعد موافقة الإدارة
             </p>
-          </div>
+          </>
         )}
         
         <div className="space-y-2">

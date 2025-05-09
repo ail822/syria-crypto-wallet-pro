@@ -11,6 +11,7 @@ import {
   Settings
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { usePlatform } from '@/context/PlatformContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { user, isAdmin, logout } = useAuth();
+  const { platformName } = usePlatform();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -60,7 +62,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col fixed right-0 top-0 h-full w-64 bg-[#1A1E2C] border-l border-[#2A3348] p-4">
         <div className="flex items-center justify-center py-6">
-          <h1 className="text-xl font-bold text-white">C-Wallet Pro</h1>
+          <h1 className="text-xl font-bold text-white">{platformName}</h1>
         </div>
         
         <div className="flex flex-col items-center mb-6 mt-2">

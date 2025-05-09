@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,10 +19,33 @@ const CurrencyManager = () => {
     exchangeRate: '',
   });
   
-  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{code: string, name: string, exchangeRate: number}>>([
-    { code: 'usdt', name: 'USDT', exchangeRate: 1 },
-    { code: 'syp', name: 'الليرة السورية', exchangeRate: exchangeRate.usdt_to_syp }
-  ]);
+  // استخدام localStorage لتخزين العملات
+  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{code: string, name: string, exchangeRate: number}>>([]);
+  
+  // تحميل العملات المحفوظة عند بدء التشغيل
+  useEffect(() => {
+    const savedCurrencies = localStorage.getItem('supportedCurrencies');
+    
+    if (savedCurrencies) {
+      setSupportedCurrencies(JSON.parse(savedCurrencies));
+    } else {
+      // إضافة العملات الافتراضية إذا لم تكن هناك عملات محفوظة
+      const defaultCurrencies = [
+        { code: 'usdt', name: 'USDT', exchangeRate: 1 },
+        { code: 'syp', name: 'الليرة السورية', exchangeRate: exchangeRate.usdt_to_syp }
+      ];
+      
+      setSupportedCurrencies(defaultCurrencies);
+      localStorage.setItem('supportedCurrencies', JSON.stringify(defaultCurrencies));
+    }
+  }, []);
+  
+  // حفظ العملات عند تغييرها
+  useEffect(() => {
+    if (supportedCurrencies.length > 0) {
+      localStorage.setItem('supportedCurrencies', JSON.stringify(supportedCurrencies));
+    }
+  }, [supportedCurrencies]);
   
   const [isLoading, setIsLoading] = useState(false);
   
@@ -48,16 +71,18 @@ const CurrencyManager = () => {
     
     setIsLoading(true);
     
-    // Simulate API call
+    // إضافة العملة الجديدة
     setTimeout(() => {
-      setSupportedCurrencies([
+      const updatedCurrencies = [
         ...supportedCurrencies,
         {
           code: currencyCode,
           name: newCurrency.name,
           exchangeRate: parseFloat(newCurrency.exchangeRate)
         }
-      ]);
+      ];
+      
+      setSupportedCurrencies(updatedCurrencies);
       
       // Reset form
       setNewCurrency({
@@ -86,7 +111,9 @@ const CurrencyManager = () => {
       return;
     }
     
-    setSupportedCurrencies(supportedCurrencies.filter(c => c.code !== code));
+    const updatedCurrencies = supportedCurrencies.filter(c => c.code !== code);
+    setSupportedCurrencies(updatedCurrencies);
+    
     toast({
       title: "تم الحذف",
       description: "تم حذف العملة بنجاح",

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import CardSection from '../ui/card-section';
 
 const DatabaseSettings = () => {
   const [dbSettings, setDbSettings] = useState({
-    host: 'localhost',
+    host: '',
     dbName: '',
     username: '',
     password: '',
@@ -17,6 +17,26 @@ const DatabaseSettings = () => {
   const [connectionStatus, setConnectionStatus] = useState<'pending' | 'success' | 'failed' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // تحميل الإعدادات المحفوظة عند بدء التشغيل
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('dbSettings');
+    
+    if (savedSettings) {
+      const parsed = JSON.parse(savedSettings);
+      setDbSettings(parsed);
+      // إذا كانت هناك إعدادات محفوظة، نفترض أن الاتصال كان ناجحًا
+      setConnectionStatus('success');
+    } else {
+      setDbSettings({
+        host: 'localhost',
+        dbName: '',
+        username: '',
+        password: '',
+      });
+      setConnectionStatus(null);
+    }
+  }, []);
 
   const handleChange = (field: string, value: string) => {
     setDbSettings({ ...dbSettings, [field]: value });
@@ -38,8 +58,8 @@ const DatabaseSettings = () => {
           description: "تم الاتصال بقاعدة البيانات بنجاح واختبار الاعتمادات",
         });
         
-        // Auto-save settings
-        saveSettings();
+        // حفظ الإعدادات في localStorage عند نجاح الاتصال
+        localStorage.setItem('dbSettings', JSON.stringify(dbSettings));
       } else {
         setConnectionStatus('failed');
         toast({
@@ -54,6 +74,9 @@ const DatabaseSettings = () => {
 
   const saveSettings = () => {
     setIsLoading(true);
+    
+    // حفظ الإعدادات حتى لو لم يتم اختبار الاتصال مرة أخرى
+    localStorage.setItem('dbSettings', JSON.stringify(dbSettings));
     
     // Simulate saving settings
     setTimeout(() => {
@@ -172,7 +195,7 @@ const DatabaseSettings = () => {
               onClick={saveSettings} 
               variant="outline" 
               className="bg-[#242C3E] border-[#2A3348]" 
-              disabled={isLoading || connectionStatus !== 'success'}
+              disabled={isLoading}
             >
               حفظ الإعدادات
             </Button>

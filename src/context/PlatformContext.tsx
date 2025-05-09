@@ -18,6 +18,9 @@ export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }
   // حفظ اسم المنصة في التخزين المحلي عند تغييره
   useEffect(() => {
     localStorage.setItem('platformName', platformName);
+    
+    // تحديث عنوان الصفحة أيضًا
+    document.title = platformName;
   }, [platformName]);
 
   const updatePlatformName = (name: string) => {

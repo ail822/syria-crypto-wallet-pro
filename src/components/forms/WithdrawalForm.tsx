@@ -178,6 +178,32 @@ const WithdrawalForm = () => {
 
   return (
     <CardSection title="سحب الأموال">
+      {user && (
+        <div className="mb-6">
+          <div className="space-y-2 mb-4">
+            <Label htmlFor="userEmailWithdraw">البريد الإلكتروني</Label>
+            <Input
+              id="userEmailWithdraw"
+              value={user.email}
+              readOnly
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="p-4 bg-[#1E293B] rounded-lg">
+              <div className="text-sm text-muted-foreground">رصيد USDT</div>
+              <div className="text-xl font-bold">{user.balances.usdt.toLocaleString()}</div>
+            </div>
+            
+            <div className="p-4 bg-[#1E293B] rounded-lg">
+              <div className="text-sm text-muted-foreground">رصيد الليرة السورية</div>
+              <div className="text-xl font-bold">{user.balances.syp.toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as WithdrawalMethod)}>
         <TabsList className="grid grid-cols-3 mb-4">
           <TabsTrigger value="province">المحافظات</TabsTrigger>
