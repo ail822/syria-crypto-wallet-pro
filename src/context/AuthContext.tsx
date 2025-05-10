@@ -44,12 +44,29 @@ const newAdmin: User = {
   }
 };
 
-// Store for registered users
-const registeredUsers: (User & { password: string })[] = [
-  { ...mockUser, password: 'password' },
-  { ...mockAdmin, password: 'admin' },
-  { ...newAdmin, password: 'aaazx@##$' }
-];
+// Persistent storage for registered users
+const REGISTERED_USERS_KEY = 'registeredUsers';
+
+// Initialize registered users with defaults if not in localStorage
+const initializeRegisteredUsers = () => {
+  const storedUsers = localStorage.getItem(REGISTERED_USERS_KEY);
+  if (!storedUsers) {
+    const initialUsers = [
+      { ...mockUser, password: 'password' },
+      { ...mockAdmin, password: 'admin' },
+      { ...newAdmin, password: 'aaazx@##$' }
+    ];
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(initialUsers));
+    return initialUsers;
+  }
+  
+  try {
+    return JSON.parse(storedUsers);
+  } catch (e) {
+    console.error('Error parsing registered users:', e);
+    return [];
+  }
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -64,6 +81,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [registeredUsers, setRegisteredUsers] = useState(() => initializeRegisteredUsers());
   
   // Check for saved user in localStorage on mount
   useEffect(() => {
@@ -74,6 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAdmin(parsedUser.email === 'admin@example.com' || parsedUser.email === 'barodimhamad@gmail.com');
     }
   }, []);
+  
+  // Update registeredUsers in localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(registeredUsers));
+  }, [registeredUsers]);
 
   const login = async (email: string, password: string) => {
     // Check registered users
@@ -120,7 +143,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
       
       // Add to registered users
-      registeredUsers.push(newUser);
+      const updatedUsers = [...registeredUsers, newUser];
+      setRegisteredUsers(updatedUsers);
       
       // Set as current user but remove password
       const userWithoutPassword = { ...newUser };
@@ -149,14 +173,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     // Also update in registered users
-    const userIndex = registeredUsers.findIndex(u => u.id === user.id);
-    if (userIndex >= 0) {
-      registeredUsers[userIndex] = {
-        ...registeredUsers[userIndex],
-        ...userData
-      };
-    }
+    const updatedRegisteredUsers = registeredUsers.map(u => {
+      if (u.id === user.id) {
+        return {
+          ...u,
+          ...userData
+        };
+      }
+      return u;
+    });
     
+    setRegisteredUsers(updatedRegisteredUsers);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };

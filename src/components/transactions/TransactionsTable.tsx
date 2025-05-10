@@ -36,7 +36,14 @@ const TransactionsTable = () => {
   // Safe formatting function to prevent null errors
   const formatNumber = (value: number | null | undefined) => {
     if (value === null || value === undefined) return '0';
-    return value.toLocaleString();
+    
+    // Ensure the value is a number
+    const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+    
+    // Handle NaN case
+    if (isNaN(numValue)) return '0';
+    
+    return numValue.toLocaleString();
   };
 
   // Apply filters to transactions
@@ -91,6 +98,31 @@ const TransactionsTable = () => {
       case 'conversion': return 'تحويل';
       default: return type;
     }
+  };
+  
+  // Helper function for finding user information
+  const findUserInfo = (userId?: string) => {
+    if (!userId) return null;
+    
+    // This would normally query a database but for now we're using localStorage
+    const allUsers = [];
+    
+    // Get all localStorage items
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key === 'user') {
+        try {
+          const userData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (userData && userData.id) {
+            allUsers.push(userData);
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+    }
+    
+    return allUsers.find(user => user.id === userId) || null;
   };
   
   // Reset all filters
@@ -189,6 +221,7 @@ const TransactionsTable = () => {
             ) : (
               filteredTransactions.map((transaction) => {
                 const statusInfo = getStatusInfo(transaction.status);
+                const userInfo = findUserInfo(transaction.userId);
                 
                 return (
                   <TableRow key={transaction.id} className="bg-[#1E293B] hover:bg-[#242C3E] border-t border-[#2A3348]">
@@ -226,8 +259,14 @@ const TransactionsTable = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {transaction.withdrawalMethod && (
+                      {userInfo && (
                         <span className="text-sm text-muted-foreground">
+                          {userInfo.name} ({userInfo.email})
+                        </span>
+                      )}
+                      
+                      {transaction.withdrawalMethod && (
+                        <span className="text-sm text-muted-foreground block">
                           {transaction.withdrawalMethod === 'province' && 'محافظة'}
                           {transaction.withdrawalMethod === 'mtn' && 'MTN'}
                           {transaction.withdrawalMethod === 'syriatel' && 'Syriatel'}

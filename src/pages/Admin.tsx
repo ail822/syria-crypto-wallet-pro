@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransaction } from '@/context/TransactionContext';
+import DatabaseSettings from '@/components/admin/DatabaseSettings';
 
 const Admin = () => {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -117,6 +118,8 @@ const Admin = () => {
               </div>
             </CardContent>
           </Card>
+
+          <DatabaseSettings />
           
           <div>
             <h2 className="text-xl font-bold mb-4">سجل المعاملات الكامل</h2>

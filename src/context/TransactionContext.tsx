@@ -1,5 +1,6 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType, ExchangeRate } from '@/types';
+
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType, ExchangeRate, User } from '@/types';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -53,6 +54,12 @@ interface TransactionContextType {
   adjustUserBalance: (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => Promise<void>;
 }
 
+// Персистентное хранилище для транзакций
+const TRANSACTIONS_STORAGE_KEY = 'transactions_data';
+const DEPOSIT_METHODS_STORAGE_KEY = 'deposit_methods';
+const WITHDRAWAL_METHODS_STORAGE_KEY = 'withdrawal_methods';
+const EXCHANGE_RATE_STORAGE_KEY = 'exchange_rate';
+
 // Sample mock transactions
 const mockTransactions: Transaction[] = [
   {
@@ -61,7 +68,8 @@ const mockTransactions: Transaction[] = [
     amount: 100,
     currency: 'usdt',
     status: 'completed',
-    timestamp: new Date('2023-05-01T10:30:00')
+    timestamp: new Date('2023-05-01T10:30:00'),
+    userId: '1'
   },
   {
     id: '2',
@@ -75,7 +83,8 @@ const mockTransactions: Transaction[] = [
       name: 'علي محمد',
       phoneNumber: '+963912345678',
       province: 'دمشق'
-    }
+    },
+    userId: '1'
   },
   {
     id: '3',
@@ -85,7 +94,8 @@ const mockTransactions: Transaction[] = [
     targetCurrency: 'syp',
     targetAmount: 250000,
     status: 'completed',
-    timestamp: new Date('2023-05-10T09:15:00')
+    timestamp: new Date('2023-05-10T09:15:00'),
+    userId: '1'
   },
   {
     id: '4',
@@ -93,7 +103,8 @@ const mockTransactions: Transaction[] = [
     amount: 200,
     currency: 'usdt',
     status: 'pending',
-    timestamp: new Date('2023-05-15T16:45:00')
+    timestamp: new Date('2023-05-15T16:45:00'),
+    userId: '1'
   }
 ];
 
@@ -155,23 +166,83 @@ const mockWithdrawalMethods: WithdrawalMethodType[] = [
   }
 ];
 
+const defaultExchangeRate: ExchangeRate = {
+  usdt_to_syp: 5000, // 1 USDT = 5000 SYP
+  syp_to_usdt: 0.0002, // 1 SYP = 0.0002 USDT
+  fee_percentage: 2,
+  enabled: true,
+  min_deposit_usdt: 10,
+  min_deposit_syp: 100000,
+  min_withdrawal_usdt: 10,
+  min_withdrawal_syp: 100000
+};
+
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
 export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-  const [depositMethods, setDepositMethods] = useState<DepositMethod[]>(mockDepositMethods);
-  const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethodType[]>(mockWithdrawalMethods);
+  // Загрузка данных из localStorage или использование mockData
+  const loadFromStorage = <T,>(key: string, defaultValue: T): T => {
+    try {
+      const storedValue = localStorage.getItem(key);
+      if (storedValue) {
+        const parsedValue = JSON.parse(storedValue);
+        
+        // Преобразование строковых дат обратно в объекты Date для транзакций
+        if (key === TRANSACTIONS_STORAGE_KEY) {
+          return parsedValue.map((t: any) => ({
+            ...t,
+            timestamp: new Date(t.timestamp)
+          }));
+        }
+        
+        // Преобразование дат для методов депозита/вывода
+        if (key === DEPOSIT_METHODS_STORAGE_KEY || key === WITHDRAWAL_METHODS_STORAGE_KEY) {
+          return parsedValue.map((m: any) => ({
+            ...m,
+            createdAt: new Date(m.createdAt)
+          }));
+        }
+        
+        return parsedValue;
+      }
+      return defaultValue;
+    } catch (error) {
+      console.error(`Error loading data from localStorage for key ${key}:`, error);
+      return defaultValue;
+    }
+  };
+
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    loadFromStorage(TRANSACTIONS_STORAGE_KEY, mockTransactions)
+  );
+  const [depositMethods, setDepositMethods] = useState<DepositMethod[]>(
+    loadFromStorage(DEPOSIT_METHODS_STORAGE_KEY, mockDepositMethods)
+  );
+  const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethodType[]>(
+    loadFromStorage(WITHDRAWAL_METHODS_STORAGE_KEY, mockWithdrawalMethods)
+  );
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate>(
+    loadFromStorage(EXCHANGE_RATE_STORAGE_KEY, defaultExchangeRate)
+  );
+  
   const { user, updateUser } = useAuth();
-  const [exchangeRate, setExchangeRate] = useState<ExchangeRate>({
-    usdt_to_syp: 5000, // 1 USDT = 5000 SYP
-    syp_to_usdt: 0.0002, // 1 SYP = 0.0002 USDT
-    fee_percentage: 2,
-    enabled: true,
-    min_deposit_usdt: 10,
-    min_deposit_syp: 100000,
-    min_withdrawal_usdt: 10,
-    min_withdrawal_syp: 100000
-  });
+
+  // Сохранение данных в localStorage при их изменении
+  useEffect(() => {
+    localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(transactions));
+  }, [transactions]);
+  
+  useEffect(() => {
+    localStorage.setItem(DEPOSIT_METHODS_STORAGE_KEY, JSON.stringify(depositMethods));
+  }, [depositMethods]);
+  
+  useEffect(() => {
+    localStorage.setItem(WITHDRAWAL_METHODS_STORAGE_KEY, JSON.stringify(withdrawalMethods));
+  }, [withdrawalMethods]);
+  
+  useEffect(() => {
+    localStorage.setItem(EXCHANGE_RATE_STORAGE_KEY, JSON.stringify(exchangeRate));
+  }, [exchangeRate]);
 
   const depositRequest = async (amount: number, walletId: string, screenshot: string) => {
     try {
@@ -506,6 +577,83 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     return filteredTransactions;
   };
 
+  // Helper function to get all users from localStorage
+  const getAllUsers = () => {
+    const allUsers = [];
+    const keys = [];
+    
+    // Get all localStorage keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) keys.push(key);
+    }
+    
+    // Find user data 
+    keys.forEach(key => {
+      if (key === 'user') {
+        try {
+          const userData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (userData && userData.id) {
+            allUsers.push(userData);
+          }
+        } catch (e) {
+          console.error('Error parsing user data:', e);
+        }
+      }
+    });
+    
+    // Lookup in registeredUsers array from AuthContext
+    try {
+      const registeredUsersString = localStorage.getItem('registeredUsers');
+      if (registeredUsersString) {
+        const registeredUsers = JSON.parse(registeredUsersString);
+        if (Array.isArray(registeredUsers)) {
+          registeredUsers.forEach(regUser => {
+            // Check if not already in allUsers
+            if (!allUsers.some(u => u.id === regUser.id)) {
+              const userWithoutPassword = { ...regUser };
+              delete (userWithoutPassword as any).password;
+              allUsers.push(userWithoutPassword);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error getting registered users:', e);
+    }
+    
+    return allUsers;
+  };
+
+  // Helper function to update a user in localStorage
+  const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+    // Update current user if matches
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    if (userData && userData.id === userId) {
+      const updatedUser = { ...userData, ...updates };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+    
+    // Also update in registeredUsers array
+    try {
+      const registeredUsersString = localStorage.getItem('registeredUsers');
+      if (registeredUsersString) {
+        const registeredUsers = JSON.parse(registeredUsersString);
+        if (Array.isArray(registeredUsers)) {
+          const updatedUsers = registeredUsers.map(regUser => {
+            if (regUser.id === userId) {
+              return { ...regUser, ...updates };
+            }
+            return regUser;
+          });
+          localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+        }
+      }
+    } catch (e) {
+      console.error('Error updating registered users:', e);
+    }
+  };
+
   const updateTransactionStatus = async (id: string, status: Transaction['status']) => {
     try {
       const transactionIndex = transactions.findIndex(t => t.id === id);
@@ -528,9 +676,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         const userToUpdate = allUsers.find(u => u.id === transaction.userId);
         
         if (userToUpdate) {
+          const currency = transaction.currency || 'usdt';
+          const currentBalance = userToUpdate.balances[currency] || 0;
+          
           const updatedBalances = {
             ...userToUpdate.balances,
-            [transaction.currency]: (userToUpdate.balances[transaction.currency] || 0) + transaction.amount
+            [currency]: currentBalance + transaction.amount
           };
           
           // Update the user in localStorage
@@ -554,9 +705,12 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         const userToUpdate = allUsers.find(u => u.id === transaction.userId);
         
         if (userToUpdate) {
+          const currency = transaction.currency || 'usdt';
+          const currentBalance = userToUpdate.balances[currency] || 0;
+          
           const updatedBalances = {
             ...userToUpdate.balances,
-            [transaction.currency]: (userToUpdate.balances[transaction.currency] || 0) + transaction.amount
+            [currency]: currentBalance + transaction.amount
           };
           
           // Update the user in localStorage
@@ -587,37 +741,6 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         });
       }
       throw error;
-    }
-  };
-
-  // Helper function to get all users from localStorage
-  const getAllUsers = () => {
-    const allUsers = [];
-    
-    // Get all localStorage items
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key === 'user') {
-        try {
-          const userData = JSON.parse(localStorage.getItem(key) || '{}');
-          if (userData && userData.id) {
-            allUsers.push(userData);
-          }
-        } catch (e) {
-          // Skip invalid JSON
-        }
-      }
-    }
-    
-    return allUsers;
-  };
-
-  // Helper function to update a user in localStorage
-  const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    if (userData && userData.id === userId) {
-      const updatedUser = { ...userData, ...updates };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
@@ -738,54 +861,58 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   // Method for admin to adjust user balance
   const adjustUserBalance = async (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => {
     try {
-      // In a real app, this would involve a database lookup
-      // For demo, we'll update the current user if emails match
-      if (user && user.email === email) {
-        const currentBalance = user.balances[currency];
-        let newBalance = currentBalance;
-        
-        if (operation === 'add') {
-          newBalance = currentBalance + amount;
-        } else {
-          // Check if there's enough balance for subtraction
-          if (currentBalance < amount) {
-            throw new Error('رصيد المستخدم غير كافي للخصم');
-          }
-          newBalance = currentBalance - amount;
-        }
-        
-        const updatedBalances = {
-          ...user.balances,
-          [currency]: newBalance
-        };
-        
-        updateUser({ balances: updatedBalances });
-        
-        // Create a transaction record for the adjustment
-        const newTransaction: Transaction = {
-          id: Math.random().toString(36).substring(2, 11),
-          type: operation === 'add' ? 'deposit' : 'withdrawal',
-          amount,
-          currency,
-          status: 'completed',
-          timestamp: new Date(),
-        };
-        
-        setTransactions([...transactions, newTransaction]);
-        
-        toast({
-          title: 'تم تعديل الرصيد بنجاح',
-          description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${email}`,
-        });
-      } else {
-        // In a real app, we would look up the user
-        // For demo, we'll simulate success
-        toast({
-          title: 'تم تعديل الرصيد بنجاح',
-          description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${email}`,
-        });
+      // Find all users and update the one with matching email
+      const allUsers = getAllUsers();
+      const userToUpdate = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+      
+      if (!userToUpdate) {
+        throw new Error('لم يتم العثور على المستخدم');
       }
       
+      // Calculate new balance
+      const currentBalance = userToUpdate.balances[currency] || 0;
+      let newBalance = currentBalance;
+      
+      if (operation === 'add') {
+        newBalance = currentBalance + amount;
+      } else {
+        // Check if there's enough balance for subtraction
+        if (currentBalance < amount) {
+          throw new Error('رصيد المستخدم غير كافي للخصم');
+        }
+        newBalance = currentBalance - amount;
+      }
+      
+      const updatedBalances = {
+        ...userToUpdate.balances,
+        [currency]: newBalance
+      };
+      
+      // Update the user in localStorage
+      updateUserInLocalStorage(userToUpdate.id, { balances: updatedBalances });
+      
+      // If this is the current logged in user, update their state too
+      if (user && userToUpdate.id === user.id) {
+        updateUser({ balances: updatedBalances });
+      }
+      
+      // Create a transaction record for the adjustment
+      const newTransaction: Transaction = {
+        id: Math.random().toString(36).substring(2, 11),
+        type: operation === 'add' ? 'deposit' : 'withdrawal',
+        amount,
+        currency,
+        status: 'completed',
+        timestamp: new Date(),
+        userId: userToUpdate.id
+      };
+      
+      setTransactions([...transactions, newTransaction]);
+      
+      toast({
+        title: 'تم تعديل الرصيد بنجاح',
+        description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${email}`,
+      });
     } catch (error) {
       if (error instanceof Error) {
         toast({
