@@ -265,12 +265,33 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         throw new Error('خدمة التحويل بين العملات معطلة مؤقتاً');
       }
       
-      let targetAmount = 0;
-      if (fromCurrency === 'usdt' && toCurrency === 'syp') {
-        targetAmount = amount * exchangeRate.usdt_to_syp;
-      } else if (fromCurrency === 'syp' && toCurrency === 'usdt') {
-        targetAmount = amount * exchangeRate.syp_to_usdt;
+      // Load supported currencies from localStorage
+      let supportedCurrencies = [
+        { code: 'usdt', exchangeRate: 1 },
+        { code: 'syp', exchangeRate: exchangeRate.usdt_to_syp }
+      ];
+      
+      try {
+        const savedCurrencies = localStorage.getItem('supportedCurrencies');
+        if (savedCurrencies) {
+          const parsedCurrencies = JSON.parse(savedCurrencies);
+          supportedCurrencies = parsedCurrencies.map((c: any) => ({
+            code: c.code,
+            exchangeRate: c.exchangeRate
+          }));
+        }
+      } catch (e) {
+        console.error("Error loading currencies:", e);
       }
+      
+      // Find exchange rates for the currencies
+      const fromCurrencyRate = supportedCurrencies.find(c => c.code === fromCurrency)?.exchangeRate || 1;
+      const toCurrencyRate = supportedCurrencies.find(c => c.code === toCurrency)?.exchangeRate || 1;
+      
+      // Calculate exchange rate between the two currencies
+      const rate = toCurrencyRate / fromCurrencyRate;
+      
+      let targetAmount = amount * rate;
       
       // Apply fee
       const fee = (targetAmount * exchangeRate.fee_percentage) / 100;
@@ -295,11 +316,19 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       setTransactions([...transactions, newTransaction]);
       
       // Update user balance
-      const updatedBalances = {
-        ...user.balances,
-        [fromCurrency]: user.balances[fromCurrency] - amount,
-        [toCurrency]: user.balances[toCurrency] + targetAmount
-      };
+      const updatedBalances = { ...user.balances };
+      
+      // Ensure the currencies exist in the user balance
+      if (updatedBalances[fromCurrency] === undefined) {
+        updatedBalances[fromCurrency] = 0;
+      }
+      
+      if (updatedBalances[toCurrency] === undefined) {
+        updatedBalances[toCurrency] = 0;
+      }
+      
+      updatedBalances[fromCurrency] -= amount;
+      updatedBalances[toCurrency] += targetAmount;
       
       updateUser({ balances: updatedBalances });
       
@@ -613,7 +642,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       setWithdrawalMethods([...withdrawalMethods, newMethod]);
       
       toast({
-        title: 'تمت الإضافة بنجاح',
+        title: 'تمت الإضافة بن��اح',
         description: 'تم إضافة طريقة السحب الجديدة',
       });
     } catch (error) {

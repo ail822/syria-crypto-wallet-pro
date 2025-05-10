@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -39,7 +40,14 @@ const BalanceCard = () => {
   // Safe formatting function to prevent null errors
   const formatNumber = (value: number | null | undefined) => {
     if (value === null || value === undefined) return '0';
-    return value.toLocaleString();
+    
+    // Ensure the value is a number
+    const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+    
+    // Handle NaN case
+    if (isNaN(numValue)) return '0';
+    
+    return numValue.toLocaleString();
   };
 
   return (

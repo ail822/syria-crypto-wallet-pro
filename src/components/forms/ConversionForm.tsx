@@ -45,6 +45,18 @@ const ConversionForm = () => {
     return toCurrencyObj.exchangeRate / fromCurrencyObj.exchangeRate;
   };
   
+  // Format numbers safely
+  const formatNumber = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined) return '0';
+    
+    // Ensure we're working with a number
+    const numValue = typeof value === 'number' ? value : parseFloat(String(value));
+    
+    if (isNaN(numValue)) return '0';
+    
+    return numValue.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
+  
   // Calculate the estimated result
   const calculateEstimatedResult = () => {
     if (!amount || isNaN(parseFloat(amount))) return '0';
@@ -55,7 +67,7 @@ const ConversionForm = () => {
     const fee = (convertedAmount * exchangeRate.fee_percentage) / 100;
     const finalAmount = convertedAmount - fee;
     
-    return finalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ` ${toCurrency.toUpperCase()}`;
+    return formatNumber(finalAmount) + ` ${toCurrency.toUpperCase()}`;
   };
   
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,7 +179,7 @@ const ConversionForm = () => {
                 {`1 ${fromCurrency.toUpperCase()} =`}
               </span>
               <span className="text-white">
-                {getExchangeRate(fromCurrency, toCurrency).toFixed(4)} {toCurrency.toUpperCase()}
+                {formatNumber(getExchangeRate(fromCurrency, toCurrency))} {toCurrency.toUpperCase()}
               </span>
             </div>
             <div className="flex justify-between items-center mb-1">
