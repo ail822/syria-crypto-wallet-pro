@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType } from '@/types';
+import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType, ExchangeRate } from '@/types';
 import { useAuth } from './AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -42,18 +42,8 @@ interface TransactionContextType {
     status?: Transaction['status']
   ) => Transaction[];
   updateTransactionStatus: (id: string, status: Transaction['status']) => Promise<void>;
-  exchangeRate: {
-    usdt_to_syp: number;
-    syp_to_usdt: number;
-    fee_percentage: number;
-    enabled: boolean;
-  };
-  updateExchangeRate: (newRates: {
-    usdt_to_syp?: number;
-    syp_to_usdt?: number;
-    fee_percentage?: number;
-    enabled?: boolean;
-  }) => void;
+  exchangeRate: ExchangeRate;
+  updateExchangeRate: (newRates: Partial<ExchangeRate>) => void;
   depositMethods: DepositMethod[];
   addDepositMethod: (method: Omit<DepositMethod, 'id' | 'createdAt'>) => Promise<void>;
   updateDepositMethodStatus: (id: string, isActive: boolean) => Promise<void>;
@@ -172,11 +162,15 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
   const [depositMethods, setDepositMethods] = useState<DepositMethod[]>(mockDepositMethods);
   const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethodType[]>(mockWithdrawalMethods);
   const { user, updateUser } = useAuth();
-  const [exchangeRate, setExchangeRate] = useState({
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRate>({
     usdt_to_syp: 5000, // 1 USDT = 5000 SYP
     syp_to_usdt: 0.0002, // 1 SYP = 0.0002 USDT
     fee_percentage: 2,
-    enabled: true
+    enabled: true,
+    min_deposit_usdt: 10,
+    min_deposit_syp: 100000,
+    min_withdrawal_usdt: 10,
+    min_withdrawal_syp: 100000
   });
 
   const depositRequest = async (amount: number, walletId: string, screenshot: string) => {
@@ -369,7 +363,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         title: 'تم إرسال طلب السحب بنجاح',
         description: method === 'c-wallet' 
           ? 'تم تنفيذ العملية بنجاح' 
-          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة ال��لب من قبل الإدارة',
+          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة ال���لب من قبل الإدارة',
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -544,12 +538,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  const updateExchangeRate = (newRates: {
-    usdt_to_syp?: number;
-    syp_to_usdt?: number;
-    fee_percentage?: number;
-    enabled?: boolean;
-  }) => {
+  const updateExchangeRate = (newRates: Partial<ExchangeRate>) => {
     setExchangeRate({
       ...exchangeRate,
       ...newRates
