@@ -16,7 +16,7 @@ import {
 import CardSection from '../ui/card-section';
 
 const CustomWithdrawalForm = () => {
-  const { withdrawRequestWithMethod, withdrawalMethods } = useTransaction();
+  const { withdrawRequestWithMethod, withdrawalMethods, exchangeRate } = useTransaction();
   const { user } = useAuth();
   const [selectedMethodId, setSelectedMethodId] = useState<string>('');
   const [amount, setAmount] = useState('');
@@ -82,6 +82,20 @@ const CustomWithdrawalForm = () => {
     const selectedMethod = withdrawalMethods.find(m => m.id === selectedMethodId);
     if (!selectedMethod) return;
     
+    // Check minimum withdrawal amount
+    const minAmount = selectedMethod.supportedCurrency === 'usdt' 
+      ? exchangeRate.min_withdrawal_usdt || 0 
+      : exchangeRate.min_withdrawal_syp || 0;
+      
+    if (parseFloat(amount) < minAmount) {
+      toast({
+        title: "المبلغ أقل من الحد الأدنى",
+        description: `الحد الأدنى للسحب هو ${minAmount} ${selectedMethod.supportedCurrency === 'usdt' ? 'USDT' : 'ليرة سورية'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsLoading(true);
       
@@ -134,8 +148,31 @@ const CustomWithdrawalForm = () => {
     );
   }
 
+  // Get minimum withdrawal amounts from exchange rates
+  const minWithdrawalUsdt = exchangeRate.min_withdrawal_usdt || 0;
+  const minWithdrawalSyp = exchangeRate.min_withdrawal_syp || 0;
+
   return (
     <CardSection title="سحب">
+      {user && (
+        <div className="mb-4 p-3 bg-blue-900/20 rounded-md border border-blue-800/30">
+          <div className="flex justify-between items-center text-sm">
+            <span>المستخدم: {user.name}</span>
+            <span>البريد الإلكتروني: {user.email}</span>
+          </div>
+          {(user.telegramId || user.phoneNumber) && (
+            <div className="flex justify-between items-center text-sm mt-1">
+              {user.telegramId && <span>تلغرام: @{user.telegramId}</span>}
+              {user.phoneNumber && <span>الهاتف: {user.phoneNumber}</span>}
+            </div>
+          )}
+          <div className="flex justify-between items-center text-sm mt-1">
+            <span>رصيد USDT: {user.balances.usdt}</span>
+            <span>رصيد ل.س: {user.balances.syp.toLocaleString()}</span>
+          </div>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="withdrawalMethod">اختر طريقة السحب</Label>
@@ -173,8 +210,12 @@ const CustomWithdrawalForm = () => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
+                min={selectedMethod.supportedCurrency === 'usdt' ? minWithdrawalUsdt : minWithdrawalSyp}
                 className="bg-[#242C3E] border-[#2A3348] text-white"
               />
+              <p className="text-xs text-muted-foreground">
+                الحد الأدنى للسحب: {selectedMethod.supportedCurrency === 'usdt' ? minWithdrawalUsdt : minWithdrawalSyp} {selectedMethod.supportedCurrency === 'usdt' ? 'USDT' : 'ل.س'}
+              </p>
             </div>
             
             {methodRequiresWalletId && (

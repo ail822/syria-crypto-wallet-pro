@@ -16,7 +16,11 @@ const AdminSettings = () => {
     usdt_to_syp: exchangeRate.usdt_to_syp,
     syp_to_usdt: exchangeRate.syp_to_usdt,
     fee_percentage: exchangeRate.fee_percentage,
-    enabled: exchangeRate.enabled
+    enabled: exchangeRate.enabled,
+    min_deposit_usdt: exchangeRate.min_deposit_usdt || 10,
+    min_deposit_syp: exchangeRate.min_deposit_syp || 100000,
+    min_withdrawal_usdt: exchangeRate.min_withdrawal_usdt || 10,
+    min_withdrawal_syp: exchangeRate.min_withdrawal_syp || 100000
   });
   
   const [telegramSettings, setTelegramSettings] = useState({
@@ -100,6 +104,54 @@ const AdminSettings = () => {
               checked={rates.enabled}
               onCheckedChange={(value) => handleRateChange('enabled', value)}
             />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="min_deposit_usdt">الحد الأدنى للإيداع (USDT)</Label>
+              <Input
+                id="min_deposit_usdt"
+                type="number"
+                step="0.1"
+                value={rates.min_deposit_usdt}
+                onChange={(e) => handleRateChange('min_deposit_usdt', parseFloat(e.target.value))}
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="min_deposit_syp">الحد الأدنى للإيداع (ل.س)</Label>
+              <Input
+                id="min_deposit_syp"
+                type="number"
+                value={rates.min_deposit_syp}
+                onChange={(e) => handleRateChange('min_deposit_syp', parseFloat(e.target.value))}
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="min_withdrawal_usdt">الحد الأدنى للسحب (USDT)</Label>
+              <Input
+                id="min_withdrawal_usdt"
+                type="number"
+                step="0.1"
+                value={rates.min_withdrawal_usdt}
+                onChange={(e) => handleRateChange('min_withdrawal_usdt', parseFloat(e.target.value))}
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="min_withdrawal_syp">الحد الأدنى للسحب (ل.س)</Label>
+              <Input
+                id="min_withdrawal_syp"
+                type="number"
+                value={rates.min_withdrawal_syp}
+                onChange={(e) => handleRateChange('min_withdrawal_syp', parseFloat(e.target.value))}
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
           </div>
           
           <Button className="w-full" onClick={handleSaveRates} disabled={isLoading}>

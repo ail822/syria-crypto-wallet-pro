@@ -1,167 +1,170 @@
 
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransaction } from '@/context/TransactionContext';
-import CardSection from '../ui/card-section';
-
-type ChartPeriod = '1m' | '3m' | '6m';
-type ChartType = 'bar' | 'line';
+import { useTheme } from '@/context/ThemeContext';
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { ArrowUp, ArrowDown, CreditCard } from 'lucide-react';
 
 const ActivityChart = () => {
-  const { getFilteredTransactions } = useTransaction();
-  const [period, setPeriod] = useState<ChartPeriod>('1m');
-  const [chartType, setChartType] = useState<ChartType>('bar');
-
-  // Calculate start date based on period
-  const getStartDate = () => {
-    const now = new Date();
-    switch (period) {
-      case '1m':
-        return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-      case '3m':
-        return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
-      case '6m':
-        return new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
-      default:
-        return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+  const { transactions } = useTransaction();
+  const { theme } = useTheme();
+  
+  // Get past 7 days for chart
+  const getLast7Days = () => {
+    const data = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const day = date.toLocaleDateString('ar-SY', { weekday: 'short' });
+      
+      // Calculate total amounts for each day
+      const dayTransactions = transactions.filter(t => {
+        const txDate = new Date(t.timestamp);
+        return txDate.getDate() === date.getDate() && 
+               txDate.getMonth() === date.getMonth() &&
+               txDate.getFullYear() === date.getFullYear();
+      });
+      
+      const deposits = dayTransactions
+        .filter(t => t.type === 'deposit' && t.status === 'completed')
+        .reduce((sum, t) => sum + (t.currency === 'usdt' ? t.amount * 15000 : t.amount), 0);
+      
+      const withdrawals = dayTransactions
+        .filter(t => t.type === 'withdrawal' && t.status === 'completed')
+        .reduce((sum, t) => sum + (t.currency === 'usdt' ? t.amount * 15000 : t.amount), 0);
+        
+      const conversions = dayTransactions
+        .filter(t => t.type === 'conversion' && t.status === 'completed')
+        .reduce((sum, t) => sum + (t.currency === 'usdt' ? t.amount * 15000 : t.amount), 0);
+      
+      data.push({
+        name: day,
+        deposits,
+        withdrawals,
+        conversions
+      });
     }
+    return data;
   };
-
-  // Get transactions for the selected period
-  const transactions = getFilteredTransactions(getStartDate());
-
-  // Process data for chart
-  const processChartData = () => {
-    const data: { name: string; deposits: number; withdrawals: number; conversions: number }[] = [];
-    
-    // Create a map for each month/week
-    const dataMap = new Map();
-    
-    transactions.forEach(transaction => {
-      const date = new Date(transaction.timestamp);
-      let key;
-      
-      if (period === '1m') {
-        // For 1 month, group by day
-        key = `${date.getDate()}/${date.getMonth() + 1}`;
-      } else {
-        // For 3 and 6 months, group by week
-        key = `${Math.ceil(date.getDate() / 7)}w ${date.getMonth() + 1}m`;
-      }
-      
-      if (!dataMap.has(key)) {
-        dataMap.set(key, { name: key, deposits: 0, withdrawals: 0, conversions: 0 });
-      }
-      
-      const entry = dataMap.get(key);
-      
-      // Convert all amounts to USDT equivalent for consistency
-      let amount = transaction.currency === 'usdt' 
-        ? transaction.amount 
-        : transaction.amount / 5000; // Simple conversion using a fixed rate
-      
-      switch (transaction.type) {
-        case 'deposit':
-          entry.deposits += amount;
-          break;
-        case 'withdrawal':
-          entry.withdrawals += amount;
-          break;
-        case 'conversion':
-          entry.conversions += amount;
-          break;
-      }
-    });
-    
-    // Convert map to array
-    dataMap.forEach(value => {
-      data.push(value);
-    });
-    
-    return data.sort((a, b) => {
-      // Sort by month and week/day
-      const [aNum, aMonth] = a.name.split(' ');
-      const [bNum, bMonth] = b.name.split(' ');
-      
-      if (aMonth && bMonth) {
-        const monthDiff = parseInt(aMonth) - parseInt(bMonth);
-        if (monthDiff !== 0) return monthDiff;
-        return parseInt(aNum) - parseInt(bNum);
-      }
-      
-      // For daily format "day/month"
-      const [aDay, aMonthDaily] = a.name.split('/');
-      const [bDay, bMonthDaily] = b.name.split('/');
-      
-      const monthDiff = parseInt(aMonthDaily) - parseInt(bMonthDaily);
-      if (monthDiff !== 0) return monthDiff;
-      return parseInt(aDay) - parseInt(bDay);
-    });
-  };
-
-  const chartData = processChartData();
-
+  
+  const data = getLast7Days();
+  
+  const isDark = theme === 'dark';
+  
   return (
-    <CardSection 
-      title="نشاط الحساب" 
-      contentClassName="p-0"
-    >
-      <div className="flex justify-between items-center px-6 pb-2">
-        <div className="flex gap-2">
-          <Select value={period} onValueChange={(value) => setPeriod(value as ChartPeriod)}>
-            <SelectTrigger className="w-[120px] bg-[#242C3E] border-[#2A3348] text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#242C3E] border-[#2A3348] text-white">
-              <SelectItem value="1m">شهر واحد</SelectItem>
-              <SelectItem value="3m">3 أشهر</SelectItem>
-              <SelectItem value="6m">6 أشهر</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={chartType} onValueChange={(value) => setChartType(value as ChartType)}>
-            <SelectTrigger className="w-[120px] bg-[#242C3E] border-[#2A3348] text-white">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-[#242C3E] border-[#2A3348] text-white">
-              <SelectItem value="bar">عرض بالأعمدة</SelectItem>
-              <SelectItem value="line">عرض خطي</SelectItem>
-            </SelectContent>
-          </Select>
+    <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md h-full">
+      <CardHeader>
+        <CardTitle className="flex justify-between items-center">
+          <span>نشاط الحساب</span>
+          <div className="flex space-x-2 rtl:space-x-reverse text-sm">
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 mr-1"></span>
+              <span>إيداع</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-rose-500 mr-1"></span>
+              <span>سحب</span>
+            </div>
+            <div className="flex items-center">
+              <span className="w-3 h-3 rounded-full bg-blue-500 mr-1"></span>
+              <span>تحويل</span>
+            </div>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[250px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={data}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+            >
+              <defs>
+                <linearGradient id="colorDeposit" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorWithdraw" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorConversion" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis 
+                dataKey="name" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: isDark ? '#9ca3af' : '#6b7280' }}
+              />
+              <YAxis 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: isDark ? '#9ca3af' : '#6b7280' }}
+                tickFormatter={(value) => value > 1000 ? `${(value / 1000).toFixed(0)}k` : value}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: isDark ? '#1F2937' : '#ffffff',
+                  borderColor: isDark ? '#374151' : '#e5e7eb',
+                  borderRadius: '0.5rem'
+                }}
+                formatter={(value) => [`${value.toLocaleString()} ل.س`]}
+              />
+              <Area
+                type="monotone"
+                dataKey="deposits"
+                stroke="#10B981"
+                fillOpacity={1}
+                fill="url(#colorDeposit)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="withdrawals"
+                stroke="#F43F5E"
+                fillOpacity={1}
+                fill="url(#colorWithdraw)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="conversions"
+                stroke="#3B82F6"
+                fillOpacity={1}
+                fill="url(#colorConversion)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-      </div>
-      
-      <div className="h-[300px] w-full p-4">
-        <ResponsiveContainer width="100%" height="100%">
-          {chartType === 'bar' ? (
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickMargin={10} />
-              <YAxis stroke="#94A3B8" fontSize={12} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1A1E2C', border: '1px solid #2A3348' }}
-                labelStyle={{ color: 'white' }}
-              />
-              <Bar dataKey="deposits" fill="#3B82F6" name="إيداع" />
-              <Bar dataKey="withdrawals" fill="#10B981" name="سحب" />
-              <Bar dataKey="conversions" fill="#6366F1" name="تحويل" />
-            </BarChart>
-          ) : (
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <XAxis dataKey="name" stroke="#94A3B8" fontSize={12} tickMargin={10} />
-              <YAxis stroke="#94A3B8" fontSize={12} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1A1E2C', border: '1px solid #2A3348' }}
-                labelStyle={{ color: 'white' }}
-              />
-              <Line type="monotone" dataKey="deposits" stroke="#3B82F6" name="إيداع" strokeWidth={2} />
-              <Line type="monotone" dataKey="withdrawals" stroke="#10B981" name="سحب" strokeWidth={2} />
-              <Line type="monotone" dataKey="conversions" stroke="#6366F1" name="تحويل" strokeWidth={2} />
-            </LineChart>
-          )}
-        </ResponsiveContainer>
-      </div>
-    </CardSection>
+        
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          <div className="bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20 flex flex-col items-center">
+            <ArrowDown className="text-emerald-500 mb-1" />
+            <span className="text-sm text-emerald-500 font-medium">الإيداعات</span>
+          </div>
+          <div className="bg-rose-500/10 p-3 rounded-lg border border-rose-500/20 flex flex-col items-center">
+            <ArrowUp className="text-rose-500 mb-1" />
+            <span className="text-sm text-rose-500 font-medium">السحوبات</span>
+          </div>
+          <div className="bg-blue-500/10 p-3 rounded-lg border border-blue-500/20 flex flex-col items-center">
+            <CreditCard className="text-blue-500 mb-1" />
+            <span className="text-sm text-blue-500 font-medium">التحويلات</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

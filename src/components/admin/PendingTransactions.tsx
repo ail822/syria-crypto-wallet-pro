@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { useTransaction } from '@/context/TransactionContext';
 import CardSection from '../ui/card-section';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Transaction } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 
 const PendingTransactions = () => {
   const { transactions, updateTransactionStatus } = useTransaction();
@@ -72,7 +75,7 @@ const PendingTransactions = () => {
   };
 
   const formatDate = (date: Date) => {
-    return new Date(date).toLocaleString('ar-SY');
+    return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ar });
   };
 
   const getTransactionTypeLabel = (type: Transaction['type']) => {
@@ -103,83 +106,100 @@ const PendingTransactions = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {pendingTransactions.map((transaction) => (
-              <div 
-                key={transaction.id} 
-                className="p-4 bg-[#1E293B] border border-[#2A3348] rounded-lg space-y-3"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
-                      <span className="font-medium">
-                        {getTransactionTypeLabel(transaction.type)}
-                        {transaction.type === 'withdrawal' && transaction.withdrawalMethod && (
-                          <span className="mr-1 text-muted-foreground text-sm">
-                            ({getWithdrawalMethodLabel(transaction.withdrawalMethod)})
-                          </span>
-                        )}
-                      </span>
+            {pendingTransactions.map((transaction) => {
+              const userInfo = findUserInfo(transaction.userId);
+              return (
+                <div 
+                  key={transaction.id} 
+                  className="p-4 bg-[#1E293B] border border-[#2A3348] rounded-lg space-y-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
+                        <span className="font-medium">
+                          {getTransactionTypeLabel(transaction.type)}
+                          {transaction.type === 'withdrawal' && transaction.withdrawalMethod && (
+                            <span className="mr-1 text-muted-foreground text-sm">
+                              ({getWithdrawalMethodLabel(transaction.withdrawalMethod)})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {formatDate(transaction.timestamp)}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {formatDate(transaction.timestamp)}
-                    </p>
+                    <div className="text-left">
+                      <p className="font-medium">
+                        {transaction.amount.toLocaleString()} {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="font-medium">
-                      {transaction.amount.toLocaleString()} {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
-                    </p>
+                  
+                  {/* User information */}
+                  {userInfo && (
+                    <div className="p-3 bg-[#242C3E] rounded-md text-sm space-y-1">
+                      <p>المستخدم: {userInfo.name}</p>
+                      <p>البريد الإلكتروني: {userInfo.email}</p>
+                      {userInfo.telegramId && (
+                        <p>معرف تلغرام: @{userInfo.telegramId}</p>
+                      )}
+                      {userInfo.phoneNumber && (
+                        <p>رقم الهاتف: {userInfo.phoneNumber}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Additional transaction details based on type */}
+                  {transaction.type === 'deposit' && transaction.screenshot && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium mb-1">لقطة الإثبات:</p>
+                      <img 
+                        src={transaction.screenshot} 
+                        alt="لقطة تحويل" 
+                        className="max-h-40 rounded-md border border-[#2A3348]" 
+                      />
+                    </div>
+                  )}
+                  
+                  {transaction.type === 'withdrawal' && transaction.recipient && (
+                    <div className="p-2 bg-[#242C3E] rounded-md text-sm space-y-1">
+                      {transaction.recipient.name && (
+                        <p>الاسم: {transaction.recipient.name}</p>
+                      )}
+                      {transaction.recipient.phoneNumber && (
+                        <p>الهاتف: {transaction.recipient.phoneNumber}</p>
+                      )}
+                      {transaction.recipient.province && (
+                        <p>المحافظة: {transaction.recipient.province}</p>
+                      )}
+                      {transaction.recipient.walletId && (
+                        <p>معرف المحفظة: {transaction.recipient.walletId}</p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 mt-4">
+                    <Button 
+                      className="flex-1" 
+                      onClick={() => handleApprove(transaction.id)}
+                      disabled={isLoading}
+                    >
+                      موافقة
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10" 
+                      onClick={() => openRejectDialog(transaction)}
+                      disabled={isLoading}
+                    >
+                      رفض
+                    </Button>
                   </div>
                 </div>
-                
-                {/* Additional transaction details based on type */}
-                {transaction.type === 'deposit' && transaction.screenshot && (
-                  <div className="mt-2">
-                    <p className="text-sm font-medium mb-1">لقطة الإثبات:</p>
-                    <img 
-                      src={transaction.screenshot} 
-                      alt="لقطة تحويل" 
-                      className="max-h-40 rounded-md border border-[#2A3348]" 
-                    />
-                  </div>
-                )}
-                
-                {transaction.type === 'withdrawal' && transaction.recipient && (
-                  <div className="p-2 bg-[#242C3E] rounded-md text-sm space-y-1">
-                    {transaction.recipient.name && (
-                      <p>الاسم: {transaction.recipient.name}</p>
-                    )}
-                    {transaction.recipient.phoneNumber && (
-                      <p>الهاتف: {transaction.recipient.phoneNumber}</p>
-                    )}
-                    {transaction.recipient.province && (
-                      <p>المحافظة: {transaction.recipient.province}</p>
-                    )}
-                    {transaction.recipient.walletId && (
-                      <p>معرف المحفظة: {transaction.recipient.walletId}</p>
-                    )}
-                  </div>
-                )}
-                
-                <div className="flex gap-2 mt-4">
-                  <Button 
-                    className="flex-1" 
-                    onClick={() => handleApprove(transaction.id)}
-                    disabled={isLoading}
-                  >
-                    موافقة
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="flex-1 border-destructive/50 text-destructive hover:bg-destructive/10" 
-                    onClick={() => openRejectDialog(transaction)}
-                    disabled={isLoading}
-                  >
-                    رفض
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardSection>
@@ -219,6 +239,31 @@ const PendingTransactions = () => {
       </Dialog>
     </>
   );
+};
+
+// Helper function to find user information based on userId
+const findUserInfo = (userId?: string) => {
+  if (!userId) return null;
+  
+  // This would normally query a database but for now we're using localStorage
+  const allUsers = [];
+  
+  // Get all localStorage items
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key === 'user') {
+      try {
+        const userData = JSON.parse(localStorage.getItem(key) || '{}');
+        if (userData && userData.id) {
+          allUsers.push(userData);
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    }
+  }
+  
+  return allUsers.find(user => user.id === userId) || null;
 };
 
 export default PendingTransactions;

@@ -16,7 +16,7 @@ import {
 import CardSection from '../ui/card-section';
 
 const CustomDepositForm = () => {
-  const { depositRequestWithMethod, depositMethods } = useTransaction();
+  const { depositRequestWithMethod, depositMethods, exchangeRate } = useTransaction();
   const { user } = useAuth();
   const [selectedMethodId, setSelectedMethodId] = useState<string>('');
   const [amount, setAmount] = useState('');
@@ -74,6 +74,20 @@ const CustomDepositForm = () => {
     const selectedMethod = depositMethods.find(m => m.id === selectedMethodId);
     if (!selectedMethod) return;
     
+    // Check minimum deposit amount
+    const minAmount = selectedMethod.acceptedCurrency === 'usdt' 
+      ? exchangeRate.min_deposit_usdt || 0 
+      : exchangeRate.min_deposit_syp || 0;
+      
+    if (parseFloat(amount) < minAmount) {
+      toast({
+        title: "المبلغ أقل من الحد الأدنى",
+        description: `الحد الأدنى للإيداع هو ${minAmount} ${selectedMethod.acceptedCurrency === 'usdt' ? 'USDT' : 'ليرة سورية'}`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsLoading(true);
       await depositRequestWithMethod(
@@ -109,8 +123,27 @@ const CustomDepositForm = () => {
     );
   }
 
+  // Get minimum deposit amounts from exchange rates
+  const minDepositUsdt = exchangeRate.min_deposit_usdt || 0;
+  const minDepositSyp = exchangeRate.min_deposit_syp || 0;
+
   return (
     <CardSection title="إيداع">
+      {user && (
+        <div className="mb-4 p-3 bg-blue-900/20 rounded-md border border-blue-800/30">
+          <div className="flex justify-between items-center text-sm">
+            <span>المستخدم: {user.name}</span>
+            <span>البريد الإلكتروني: {user.email}</span>
+          </div>
+          {(user.telegramId || user.phoneNumber) && (
+            <div className="flex justify-between items-center text-sm mt-1">
+              {user.telegramId && <span>تلغرام: @{user.telegramId}</span>}
+              {user.phoneNumber && <span>الهاتف: {user.phoneNumber}</span>}
+            </div>
+          )}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="depositMethod">اختر طريقة الإيداع</Label>
@@ -148,8 +181,12 @@ const CustomDepositForm = () => {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
+                min={selectedMethod.acceptedCurrency === 'usdt' ? minDepositUsdt : minDepositSyp}
                 className="bg-[#242C3E] border-[#2A3348] text-white"
               />
+              <p className="text-xs text-muted-foreground">
+                الحد الأدنى للإيداع: {selectedMethod.acceptedCurrency === 'usdt' ? minDepositUsdt : minDepositSyp} {selectedMethod.acceptedCurrency === 'usdt' ? 'USDT' : 'ل.س'}
+              </p>
             </div>
             
             {selectedMethod.requiresTransactionId && (

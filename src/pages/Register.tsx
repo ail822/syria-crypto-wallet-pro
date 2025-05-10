@@ -17,7 +17,7 @@ const Register = () => {
     <div className="min-h-screen flex items-center justify-center gradient-bg">
       <div className="w-full max-w-md p-6 animate-slide-in">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2 platform-name">{platformName}</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">{platformName}</h1>
           <p className="text-muted-foreground">إنشاء حساب جديد</p>
         </div>
         
