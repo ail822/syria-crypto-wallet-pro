@@ -310,7 +310,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         targetCurrency: toCurrency,
         targetAmount,
         status: 'completed',
-        timestamp: new Date()
+        timestamp: new Date(),
+        userId: user.id
       };
       
       setTransactions([...transactions, newTransaction]);
@@ -383,7 +384,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         status: method === 'c-wallet' ? 'completed' : 'pending',
         timestamp: new Date(),
         withdrawalMethod: method,
-        recipient: recipientData
+        recipient: recipientData,
+        userId: user.id
       };
       
       setTransactions([...transactions, newTransaction]);
@@ -392,7 +394,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         title: 'تم إرسال طلب السحب بنجاح',
         description: method === 'c-wallet' 
           ? 'تم تنفيذ العملية بنجاح' 
-          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة ال���لب من قبل الإدارة',
+          : 'تم خصم المبلغ من رصيدك وسيتم مراجعة الطلب من قبل الإدارة',
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -445,7 +447,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         status: method.requiresApproval ? 'pending' : 'completed',
         timestamp: new Date(),
         withdrawalMethodId: methodId,
-        recipient: recipientData
+        recipient: recipientData,
+        userId: user.id
       };
       
       setTransactions([...transactions, newTransaction]);
@@ -519,34 +522,54 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       setTransactions(updatedTransactions);
       
       // Handle deposit approval - add amount to user balance
-      if (status === 'completed' && transaction.type === 'deposit') {
-        // In a real app, find the user by userId stored in the transaction
-        // For now, we'll update the current user if they're the owner
-        if (user && transaction.userId === user.id) {
+      if (status === 'completed' && transaction.type === 'deposit' && transaction.userId) {
+        // Find the user in localStorage
+        const allUsers = getAllUsers();
+        const userToUpdate = allUsers.find(u => u.id === transaction.userId);
+        
+        if (userToUpdate) {
           const updatedBalances = {
-            ...user.balances,
-            [transaction.currency]: user.balances[transaction.currency] + transaction.amount
+            ...userToUpdate.balances,
+            [transaction.currency]: (userToUpdate.balances[transaction.currency] || 0) + transaction.amount
           };
-          updateUser({ balances: updatedBalances });
+          
+          // Update the user in localStorage
+          updateUserInLocalStorage(userToUpdate.id, { balances: updatedBalances });
+          
+          // If this is the current logged in user, update their state too
+          if (user && userToUpdate.id === user.id) {
+            updateUser({ balances: updatedBalances });
+          }
           
           toast({
             title: 'تمت الموافقة على الإيداع',
-            description: `تمت إضافة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيدك`,
+            description: `تمت إضافة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيد المستخدم`,
           });
         }
       } 
       // Handle withdrawal rejection - return funds to user
-      else if (status === 'rejected' && transaction.type === 'withdrawal') {
-        if (user && transaction.userId === user.id) {
+      else if (status === 'rejected' && transaction.type === 'withdrawal' && transaction.userId) {
+        // Find the user in localStorage
+        const allUsers = getAllUsers();
+        const userToUpdate = allUsers.find(u => u.id === transaction.userId);
+        
+        if (userToUpdate) {
           const updatedBalances = {
-            ...user.balances,
-            [transaction.currency]: user.balances[transaction.currency] + transaction.amount
+            ...userToUpdate.balances,
+            [transaction.currency]: (userToUpdate.balances[transaction.currency] || 0) + transaction.amount
           };
-          updateUser({ balances: updatedBalances });
+          
+          // Update the user in localStorage
+          updateUserInLocalStorage(userToUpdate.id, { balances: updatedBalances });
+          
+          // If this is the current logged in user, update their state too
+          if (user && userToUpdate.id === user.id) {
+            updateUser({ balances: updatedBalances });
+          }
           
           toast({
             title: 'تم رفض طلب السحب',
-            description: `تمت ��عادة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيدك`,
+            description: `تمت إعادة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيد المستخدم`,
           });
         }
       }
@@ -564,6 +587,37 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
         });
       }
       throw error;
+    }
+  };
+
+  // Helper function to get all users from localStorage
+  const getAllUsers = () => {
+    const allUsers = [];
+    
+    // Get all localStorage items
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key === 'user') {
+        try {
+          const userData = JSON.parse(localStorage.getItem(key) || '{}');
+          if (userData && userData.id) {
+            allUsers.push(userData);
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+    }
+    
+    return allUsers;
+  };
+
+  // Helper function to update a user in localStorage
+  const updateUserInLocalStorage = (userId: string, updates: Record<string, any>) => {
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    if (userData && userData.id === userId) {
+      const updatedUser = { ...userData, ...updates };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     }
   };
 
@@ -642,7 +696,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
       setWithdrawalMethods([...withdrawalMethods, newMethod]);
       
       toast({
-        title: 'تمت الإضافة بن��اح',
+        title: 'تمت الإضافة بنجاح',
         description: 'تم إضافة طريقة السحب الجديدة',
       });
     } catch (error) {
@@ -681,7 +735,7 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
     }
   };
 
-  // New method for admin to adjust user balance
+  // Method for admin to adjust user balance
   const adjustUserBalance = async (email: string, amount: number, currency: Currency, operation: 'add' | 'subtract') => {
     try {
       // In a real app, this would involve a database lookup

@@ -29,6 +29,10 @@ const Admin = () => {
   const depositCount = transactions.filter(t => t.type === 'deposit').length;
   const withdrawalCount = transactions.filter(t => t.type === 'withdrawal').length;
   const conversionCount = transactions.filter(t => t.type === 'conversion').length;
+  
+  // Count completed and rejected transactions 
+  const completedCount = transactions.filter(t => t.status === 'completed').length;
+  const rejectedCount = transactions.filter(t => t.status === 'rejected').length;
 
   return (
     <DashboardLayout>
@@ -65,6 +69,29 @@ const Admin = () => {
           </Card>
         </div>
         
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-green-600 to-green-700 border-none">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-green-100">المعاملات المكتملة</CardDescription>
+              <CardTitle className="text-2xl text-white">{completedCount}</CardTitle>
+            </CardHeader>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-red-600 to-red-700 border-none">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-red-100">المعاملات المرفوضة</CardDescription>
+              <CardTitle className="text-2xl text-white">{rejectedCount}</CardTitle>
+            </CardHeader>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-indigo-600 to-indigo-700 border-none">
+            <CardHeader className="pb-2">
+              <CardDescription className="text-indigo-100">إجمالي المعاملات</CardDescription>
+              <CardTitle className="text-2xl text-white">{transactions.length}</CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+        
         <div className="space-y-6">
           <PendingTransactions />
           
@@ -81,11 +108,11 @@ const Admin = () => {
                 <Button onClick={() => navigate('/admin/settings')}>
                   إعدادات الصرف والعمولات
                 </Button>
-                <Button variant="secondary">
-                  إدارة المستخدمين
+                <Button variant="secondary" onClick={() => navigate('/admin/settings?tab=user-balance')}>
+                  إدارة أرصدة المستخدمين
                 </Button>
-                <Button variant="outline" className="border-[#2A3348] text-white">
-                  تقارير النظام
+                <Button variant="outline" onClick={() => navigate('/admin/settings?tab=payment-methods')} className="border-[#2A3348] text-white">
+                  إدارة طرق الدفع
                 </Button>
               </div>
             </CardContent>
