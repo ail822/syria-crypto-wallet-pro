@@ -28,6 +28,12 @@ const PendingTransactions = () => {
   // Filter only pending transactions
   const pendingTransactions = transactions.filter(t => t.status === 'pending');
 
+  // Safe formatting function to prevent null errors
+  const formatNumber = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '0';
+    return value.toLocaleString();
+  };
+
   const handleApprove = async (id: string) => {
     try {
       setIsLoading(true);
@@ -132,7 +138,7 @@ const PendingTransactions = () => {
                     </div>
                     <div className="text-left">
                       <p className="font-medium">
-                        {transaction.amount.toLocaleString()} {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
+                        {formatNumber(transaction.amount)} {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
                       </p>
                     </div>
                   </div>

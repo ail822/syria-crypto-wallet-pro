@@ -33,6 +33,12 @@ const TransactionsTable = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  // Safe formatting function to prevent null errors
+  const formatNumber = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '0';
+    return value.toLocaleString();
+  };
+
   // Apply filters to transactions
   const filteredTransactions = transactions.filter(transaction => {
     // Type filter
@@ -194,18 +200,18 @@ const TransactionsTable = () => {
                     </TableCell>
                     <TableCell>
                       <span className="font-medium">
-                        {transaction.amount.toLocaleString()}
+                        {formatNumber(transaction.amount)}
                       </span>
                       {' '}
                       <span className="text-muted-foreground">
                         {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
                       </span>
                       
-                      {transaction.type === 'conversion' && transaction.targetAmount && (
+                      {transaction.type === 'conversion' && transaction.targetAmount !== undefined && (
                         <>
                           <span className="mx-1">→</span>
                           <span className="font-medium">
-                            {transaction.targetAmount.toLocaleString()}
+                            {formatNumber(transaction.targetAmount)}
                           </span>
                           {' '}
                           <span className="text-muted-foreground">

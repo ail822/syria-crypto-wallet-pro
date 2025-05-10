@@ -36,6 +36,12 @@ const BalanceCard = () => {
     return colors[index % colors.length];
   };
 
+  // Safe formatting function to prevent null errors
+  const formatNumber = (value: number | null | undefined) => {
+    if (value === null || value === undefined) return '0';
+    return value.toLocaleString();
+  };
+
   return (
     <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
       <CardContent className="p-6">
@@ -47,7 +53,7 @@ const BalanceCard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-80">رصيد USDT</p>
-                <p className="text-2xl font-bold mt-1">${user.balances.usdt.toFixed(2)}</p>
+                <p className="text-2xl font-bold mt-1">${formatNumber(user.balances.usdt)}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
                 <span className="font-bold">USDT</span>
@@ -60,7 +66,7 @@ const BalanceCard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm opacity-80">رصيد الليرة السورية</p>
-                <p className="text-2xl font-bold mt-1">{user.balances.syp.toLocaleString()} ل.س</p>
+                <p className="text-2xl font-bold mt-1">{formatNumber(user.balances.syp)} ل.س</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
                 <span className="font-bold">SYP</span>
@@ -80,7 +86,7 @@ const BalanceCard = () => {
                   <div>
                     <p className="text-sm opacity-80">رصيد {currency.name}</p>
                     <p className="text-2xl font-bold mt-1">
-                      {getBalanceForCurrency(currency.code).toLocaleString()} {currency.code.toUpperCase()}
+                      {formatNumber(getBalanceForCurrency(currency.code))} {currency.code.toUpperCase()}
                     </p>
                   </div>
                   <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
@@ -96,7 +102,7 @@ const BalanceCard = () => {
         <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-800/50">
           <div className="flex justify-between items-center mb-1">
             <span className="text-muted-foreground text-sm">1 USDT = </span>
-            <span className="text-white">{exchangeRate.usdt_to_syp.toLocaleString()} ل.س</span>
+            <span className="text-white">{formatNumber(exchangeRate.usdt_to_syp)} ل.س</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground text-sm">العمولة:</span>
