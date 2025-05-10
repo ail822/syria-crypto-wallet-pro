@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -44,10 +43,10 @@ export interface ExchangeRate {
   syp_to_usdt: number;
   fee_percentage: number;
   enabled: boolean;
-  min_deposit_usdt?: number; 
-  min_deposit_syp?: number;
-  min_withdrawal_usdt?: number;
-  min_withdrawal_syp?: number;
+  min_deposit_usdt: number; 
+  min_deposit_syp: number;
+  min_withdrawal_usdt: number;
+  min_withdrawal_syp: number;
 }
 
 export interface AdminSettings {
