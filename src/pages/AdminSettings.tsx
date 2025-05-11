@@ -7,6 +7,8 @@ import ManagePaymentMethods from '@/components/admin/ManagePaymentMethods';
 import DatabaseSettings from '@/components/admin/DatabaseSettings';
 import UserBalanceManager from '@/components/admin/UserBalanceManager';
 import TelegramBotSettings from '@/components/admin/TelegramBotSettings';
+import CurrencyManager from '@/components/admin/CurrencyManager';
+import ExchangeRateForm from '@/components/admin/ExchangeRateForm';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -39,6 +41,7 @@ const AdminSettings = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="mb-4 flex flex-wrap">
             <TabsTrigger value="general">الإعدادات العامة</TabsTrigger>
+            <TabsTrigger value="currency">العملات وأسعار الصرف</TabsTrigger>
             <TabsTrigger value="payment-methods">طرق الدفع</TabsTrigger>
             <TabsTrigger value="database">إعدادات قاعدة البيانات</TabsTrigger>
             <TabsTrigger value="user-balance">إدارة أرصدة المستخدمين</TabsTrigger>
@@ -47,6 +50,11 @@ const AdminSettings = () => {
           
           <TabsContent value="general">
             <AdminSettingsComponent />
+          </TabsContent>
+          
+          <TabsContent value="currency" className="space-y-6">
+            <ExchangeRateForm />
+            <CurrencyManager />
           </TabsContent>
           
           <TabsContent value="payment-methods">
