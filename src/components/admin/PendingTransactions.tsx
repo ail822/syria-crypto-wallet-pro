@@ -7,6 +7,7 @@ import { useTransaction } from '@/context/TransactionContext';
 import CardSection from '../ui/card-section';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { Mail, User, MessageCircle, Phone } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Transaction } from '@/types';
+import { Transaction, User as UserType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
+import { sendTransactionBackup } from '@/utils/telegramBot';
 
 const PendingTransactions = () => {
   const { transactions, updateTransactionStatus } = useTransaction();
@@ -45,6 +47,19 @@ const PendingTransactions = () => {
     try {
       setIsLoading(true);
       await updateTransactionStatus(id, 'completed');
+      
+      // Get the transaction that was just approved
+      const transaction = transactions.find(t => t.id === id);
+      if (transaction) {
+        // Find the user associated with this transaction
+        const userInfo = findUserInfo(transaction.userId);
+        
+        // Send transaction backup to Telegram
+        if (userInfo) {
+          await sendTransactionBackup(transaction, userInfo);
+        }
+      }
+      
       toast({ title: 'تم الموافقة على المعاملة بنجاح' });
     } catch (error) {
       toast({ 
@@ -69,6 +84,19 @@ const PendingTransactions = () => {
     try {
       setIsLoading(true);
       await updateTransactionStatus(selectedTransaction.id, 'rejected');
+      
+      // Get the transaction that was just rejected
+      const transaction = transactions.find(t => t.id === selectedTransaction.id);
+      if (transaction) {
+        // Find the user associated with this transaction
+        const userInfo = findUserInfo(transaction.userId);
+        
+        // Send transaction backup to Telegram with rejected status
+        if (userInfo) {
+          await sendTransactionBackup({...transaction, status: 'rejected'}, userInfo);
+        }
+      }
+      
       toast({ 
         title: 'تم رفض المعاملة',
         description: selectedTransaction.type === 'withdrawal' 
@@ -108,6 +136,43 @@ const PendingTransactions = () => {
       case 'c-wallet': return 'C-Wallet';
       default: return '';
     }
+  };
+
+  // Improved helper function to display user information
+  const UserInfoCard = ({ userInfo }: { userInfo: UserType | null }) => {
+    if (!userInfo) return null;
+    
+    return (
+      <div className="p-3 bg-[#242C3E] rounded-md text-sm space-y-2">
+        <h4 className="font-medium text-white/80 mb-2">بيانات المستخدم</h4>
+        
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-white/60" />
+            <span>{userInfo.name}</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-white/60" />
+            <span>{userInfo.email}</span>
+          </div>
+          
+          {userInfo.telegramId && (
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-white/60" />
+              <span>@{userInfo.telegramId}</span>
+            </div>
+          )}
+          
+          {userInfo.phoneNumber && (
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4 text-white/60" />
+              <span>{userInfo.phoneNumber}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -150,19 +215,8 @@ const PendingTransactions = () => {
                     </div>
                   </div>
                   
-                  {/* User information */}
-                  {userInfo && (
-                    <div className="p-3 bg-[#242C3E] rounded-md text-sm space-y-1">
-                      <p>المستخدم: {userInfo.name}</p>
-                      <p>البريد الإلكتروني: {userInfo.email}</p>
-                      {userInfo.telegramId && (
-                        <p>معرف تلغرام: @{userInfo.telegramId}</p>
-                      )}
-                      {userInfo.phoneNumber && (
-                        <p>رقم الهاتف: {userInfo.phoneNumber}</p>
-                      )}
-                    </div>
-                  )}
+                  {/* User information - Now always displayed prominently */}
+                  <UserInfoCard userInfo={userInfo} />
                   
                   {/* Additional transaction details based on type */}
                   {transaction.type === 'deposit' && transaction.screenshot && (
@@ -274,6 +328,23 @@ const findUserInfo = (userId?: string) => {
         // Skip invalid JSON
       }
     }
+  }
+  
+  // Also look in registeredUsers
+  try {
+    const registeredUsersStr = localStorage.getItem('registeredUsers');
+    if (registeredUsersStr) {
+      const registeredUsers = JSON.parse(registeredUsersStr);
+      if (Array.isArray(registeredUsers)) {
+        registeredUsers.forEach(user => {
+          if (!allUsers.some(u => u.id === user.id)) {
+            allUsers.push(user);
+          }
+        });
+      }
+    }
+  } catch (e) {
+    // Skip invalid JSON
   }
   
   return allUsers.find(user => user.id === userId) || null;

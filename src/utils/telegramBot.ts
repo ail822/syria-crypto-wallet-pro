@@ -91,6 +91,7 @@ export const sendTelegramMessage = async (text: string): Promise<boolean> => {
     const config = loadTelegramConfig();
     
     if (!config.enabled || !config.token || !config.adminId) {
+      console.log('Telegram bot is not enabled or missing configuration');
       return false;
     }
     
@@ -108,6 +109,9 @@ export const sendTelegramMessage = async (text: string): Promise<boolean> => {
     });
     
     const data = await response.json();
+    if (!data.ok) {
+      console.error('Telegram API error:', data.description);
+    }
     return data.ok === true;
   } catch (error) {
     console.error('Error sending Telegram message:', error);
@@ -124,6 +128,7 @@ export const sendTransactionBackup = async (
     const config = loadTelegramConfig();
     
     if (!config.enabled) {
+      console.log('Telegram backups are not enabled');
       return false;
     }
     
@@ -134,6 +139,30 @@ export const sendTransactionBackup = async (
     message += `💰 المبلغ: ${transaction.amount} ${transaction.currency.toUpperCase()}\n`;
     message += `⏱ التاريخ: ${new Date(transaction.timestamp).toLocaleString('ar-SA')}\n`;
     message += `🔴 الحالة: ${getTransactionStatusText(transaction.status)}\n`;
+    
+    if (transaction.type === 'conversion' && transaction.targetCurrency && transaction.targetAmount) {
+      message += `💱 التحويل: ${transaction.amount} ${transaction.currency.toUpperCase()} ➜ ${transaction.targetAmount} ${transaction.targetCurrency.toUpperCase()}\n`;
+    }
+    
+    if (transaction.type === 'withdrawal' && transaction.recipient) {
+      message += '\n📤 <b>بيانات المستلم</b>\n';
+      
+      if (transaction.recipient.name) {
+        message += `👤 الاسم: ${transaction.recipient.name}\n`;
+      }
+      
+      if (transaction.recipient.phoneNumber) {
+        message += `📱 الهاتف: ${transaction.recipient.phoneNumber}\n`;
+      }
+      
+      if (transaction.recipient.province) {
+        message += `🏙 المحافظة: ${transaction.recipient.province}\n`;
+      }
+      
+      if (transaction.recipient.walletId) {
+        message += `💼 معرف المحفظة: ${transaction.recipient.walletId}\n`;
+      }
+    }
     
     if (user) {
       message += '\n👤 <b>بيانات المستخدم</b>\n';
@@ -148,8 +177,17 @@ export const sendTransactionBackup = async (
       if (user.telegramId) {
         message += `🔵 معرف تلغرام: @${user.telegramId}\n`;
       }
+      
+      // Add balances information
+      message += '\n💰 <b>الأرصدة الحالية</b>\n';
+      message += `💵 USDT: ${user.balances.usdt}\n`;
+      message += `💴 SYP: ${user.balances.syp}\n`;
     }
     
+    // Add timestamp for the backup itself
+    message += `\n⏰ توقيت النسخ الاحتياطي: ${new Date().toLocaleString('ar-SA')}`;
+    
+    // Send the backup
     return await sendTelegramMessage(message);
   } catch (error) {
     console.error('Error sending transaction backup:', error);

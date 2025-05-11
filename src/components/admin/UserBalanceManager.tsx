@@ -9,16 +9,19 @@ import { useAuth } from '@/context/AuthContext';
 import { Currency } from '@/types';
 import { Database, Plus, Minus } from 'lucide-react';
 import CardSection from '../ui/card-section';
+import { useTransaction } from '@/context/TransactionContext';
+import { sendTransactionBackup } from '@/utils/telegramBot';
 
 const UserBalanceManager = () => {
   const { user: adminUser } = useAuth();
+  const { adjustUserBalance } = useTransaction();
   const [userEmail, setUserEmail] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState<Currency>('usdt');
   const [operation, setOperation] = useState<'add' | 'subtract'>('add');
   const [isLoading, setIsLoading] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!userEmail || !amount || parseFloat(amount) <= 0) {
@@ -32,18 +35,28 @@ const UserBalanceManager = () => {
     
     setIsLoading(true);
     
-    // Simulate processing
-    setTimeout(() => {
-      toast({
-        title: "تمت العملية بنجاح",
-        description: `تم ${operation === 'add' ? 'إضافة' : 'خصم'} ${amount} ${currency.toUpperCase()} من حساب ${userEmail}`,
-      });
+    try {
+      // Adjust user balance using the context function
+      await adjustUserBalance(
+        userEmail,
+        parseFloat(amount),
+        currency,
+        operation
+      );
       
-      // Reset form
+      // Reset form after successful operation
       setUserEmail('');
       setAmount('');
+      
+    } catch (error) {
+      toast({
+        title: "فشلت العملية",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء تعديل الرصيد",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
