@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { usePlatform } from '@/context/PlatformContext';
-import { Facebook, Youtube, Telegram, MessageCircle } from 'lucide-react';
+import { Facebook, Youtube, MessageCircle } from 'lucide-react';
 
 const Landing = () => {
   const navigate = useNavigate();

@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Facebook, Youtube, Telegram, MessageCircle } from 'lucide-react';
+import { Facebook, Youtube, MessageCircle } from 'lucide-react';
 import { usePlatform } from '@/context/PlatformContext';
 
 const Footer = () => {
@@ -20,7 +19,7 @@ const Footer = () => {
         icon = <Youtube {...iconProps} />;
         break;
       case 'telegram':
-        icon = <Telegram {...iconProps} />;
+        icon = <MessageCircle {...iconProps} />;
         break;
       case 'whatsapp':
         icon = <MessageCircle {...iconProps} />;

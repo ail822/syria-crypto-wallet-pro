@@ -11,6 +11,7 @@ export interface SocialLinks {
 interface PlatformContextType {
   platformName: string;
   setPlatformName: (name: string) => void;
+  updatePlatformName: (name: string) => void;
   supportEmail: string;
   setSupportEmail: (email: string) => void;
   socialLinks: SocialLinks;
@@ -20,6 +21,7 @@ interface PlatformContextType {
 const PlatformContext = createContext<PlatformContextType>({
   platformName: 'صرافة الكترونية',
   setPlatformName: () => {},
+  updatePlatformName: () => {},
   supportEmail: 'support@example.com',
   setSupportEmail: () => {},
   socialLinks: {},
@@ -70,10 +72,16 @@ export const PlatformProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     localStorage.setItem('socialLinks', JSON.stringify(socialLinks));
   }, [socialLinks]);
 
+  // Add the updatePlatformName function that was missing
+  const updatePlatformName = (name: string) => {
+    setPlatformName(name);
+  };
+
   return (
     <PlatformContext.Provider value={{ 
       platformName, 
       setPlatformName, 
+      updatePlatformName, 
       supportEmail, 
       setSupportEmail,
       socialLinks,

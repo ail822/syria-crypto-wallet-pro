@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
-import { Facebook, Youtube, Telegram, MessageCircle } from 'lucide-react';
+import { Facebook, Youtube, MessageCircle } from 'lucide-react';
 import CardSection from '@/components/ui/card-section';
 
 const SocialLinksSettings = () => {
@@ -112,7 +111,7 @@ const SocialLinksSettings = () => {
             </div>
             
             <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <Telegram className="h-5 w-5 text-blue-400" />
+              <MessageCircle className="h-5 w-5 text-blue-400" />
               <div className="flex-1">
                 <Label htmlFor="telegramLink">تلغرام</Label>
                 <Input

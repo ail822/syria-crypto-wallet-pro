@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { Telegram, CheckCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import { 
   loadTelegramConfig, 
   enableTelegramBot, 
@@ -178,7 +178,7 @@ const TelegramBotSettings = () => {
         </div>
         
         <Alert className={config.enabled ? "border-green-500 bg-green-500/10" : "border-amber-500 bg-amber-500/10"}>
-          <Telegram className={`h-4 w-4 ${config.enabled ? "text-green-500" : "text-amber-500"}`} />
+          <MessageCircle className={`h-4 w-4 ${config.enabled ? "text-green-500" : "text-amber-500"}`} />
           <AlertTitle>
             {config.enabled ? "البوت نشط" : "البوت غير نشط"}
           </AlertTitle>
