@@ -8,7 +8,7 @@ import { useTransaction } from '@/context/TransactionContext';
 import { Currency } from '@/types';
 import CardSection from '../ui/card-section';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash } from 'lucide-react';
+import { Trash } from 'lucide-react';
 
 const CurrencyManager = () => {
   const { exchangeRate, updateExchangeRate } = useTransaction();
