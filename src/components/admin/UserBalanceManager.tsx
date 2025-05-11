@@ -48,6 +48,39 @@ const UserBalanceManager = () => {
       setUserEmail('');
       setAmount('');
       
+      // Send backup notification to Telegram bot
+      try {
+        // Find user information
+        const allUsers = [];
+        try {
+          const registeredUsersStr = localStorage.getItem('registeredUsers');
+          if (registeredUsersStr) {
+            const registeredUsers = JSON.parse(registeredUsersStr);
+            allUsers.push(...registeredUsers);
+          }
+        } catch (e) {
+          console.error("Error loading users from localStorage:", e);
+        }
+        
+        const user = allUsers.find(user => user.email.toLowerCase() === userEmail.toLowerCase());
+        if (user) {
+          await sendTransactionBackup(
+            {
+              id: `admin_${Date.now()}`,
+              type: operation === 'add' ? 'deposit' : 'withdrawal',
+              amount: parseFloat(amount),
+              currency: currency,
+              status: 'completed',
+              timestamp: new Date(),
+              userId: user.id,
+            },
+            user
+          );
+        }
+      } catch (backupError) {
+        console.error("Failed to send backup to Telegram bot:", backupError);
+      }
+      
     } catch (error) {
       toast({
         title: "فشلت العملية",

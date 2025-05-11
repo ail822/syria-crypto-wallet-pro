@@ -210,7 +210,7 @@ const PendingTransactions = () => {
                     </div>
                     <div className="text-left">
                       <p className="font-medium">
-                        {formatNumber(transaction.amount)} {transaction.currency === 'usdt' ? 'USDT' : 'ل.س'}
+                        {formatNumber(transaction.amount)} {transaction.currency.toUpperCase()}
                       </p>
                     </div>
                   </div>
