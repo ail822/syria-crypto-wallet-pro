@@ -19,9 +19,21 @@ const LoginForm = () => {
     
     try {
       setIsLoading(true);
-      await login(email, password);
-      toast({ title: "تم تسجيل الدخول بنجاح" });
-      navigate('/');
+      const { userId, requires2FA } = await login(email, password);
+      
+      if (requires2FA) {
+        // Redirect to 2FA verification page
+        navigate('/verify-2fa', {
+          state: {
+            userId,
+            redirectTo: '/'
+          }
+        });
+      } else {
+        // Regular login success
+        toast({ title: "تم تسجيل الدخول بنجاح" });
+        navigate('/');
+      }
     } catch (error) {
       if (error instanceof Error) {
         toast({

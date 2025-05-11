@@ -6,6 +6,7 @@ import AdminSettingsComponent from '@/components/admin/AdminSettings';
 import ManagePaymentMethods from '@/components/admin/ManagePaymentMethods';
 import DatabaseSettings from '@/components/admin/DatabaseSettings';
 import UserBalanceManager from '@/components/admin/UserBalanceManager';
+import TelegramBotSettings from '@/components/admin/TelegramBotSettings';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -41,6 +42,7 @@ const AdminSettings = () => {
             <TabsTrigger value="payment-methods">طرق الدفع</TabsTrigger>
             <TabsTrigger value="database">إعدادات قاعدة البيانات</TabsTrigger>
             <TabsTrigger value="user-balance">إدارة أرصدة المستخدمين</TabsTrigger>
+            <TabsTrigger value="telegram-bot">بوت التلغرام</TabsTrigger>
           </TabsList>
           
           <TabsContent value="general">
@@ -57,6 +59,10 @@ const AdminSettings = () => {
 
           <TabsContent value="user-balance">
             <UserBalanceManager />
+          </TabsContent>
+          
+          <TabsContent value="telegram-bot">
+            <TelegramBotSettings />
           </TabsContent>
         </Tabs>
       </div>

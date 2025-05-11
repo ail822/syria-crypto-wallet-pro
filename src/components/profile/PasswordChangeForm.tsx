@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import CardSection from '../ui/card-section';
 
 const PasswordChangeForm = () => {
@@ -13,6 +14,8 @@ const PasswordChangeForm = () => {
     newPassword: '',
     confirmPassword: '',
   });
+  
+  const { user, updatePassword } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -21,6 +24,15 @@ const PasswordChangeForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast({
+        title: "خطأ في تسجيل الدخول",
+        description: "يرجى تسجيل الدخول وإعادة المحاولة",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
@@ -43,15 +55,26 @@ const PasswordChangeForm = () => {
     try {
       setIsLoading(true);
       
-      // Mock password change - in real app, call an API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const success = await updatePassword(
+        user.id, 
+        passwordData.currentPassword, 
+        passwordData.newPassword
+      );
       
-      toast({ title: "تم تغيير كلمة المرور بنجاح" });
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      if (success) {
+        toast({ title: "تم تغيير كلمة المرور بنجاح" });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      } else {
+        toast({
+          title: "فشل تغيير كلمة المرور",
+          description: "تأكد من صحة كلمة المرور الحالية وحاول مرة أخرى",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "فشل تغيير كلمة المرور",

@@ -1,52 +1,87 @@
 
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+export interface SocialLinks {
+  facebook?: string;
+  youtube?: string;
+  telegram?: string;
+  whatsapp?: string;
+}
 
 interface PlatformContextType {
   platformName: string;
-  updatePlatformName: (name: string) => void;
+  setPlatformName: (name: string) => void;
+  supportEmail: string;
+  setSupportEmail: (email: string) => void;
+  socialLinks: SocialLinks;
+  setSocialLinks: (links: SocialLinks) => void;
 }
 
-const PlatformContext = createContext<PlatformContextType | undefined>(undefined);
+const PlatformContext = createContext<PlatformContextType>({
+  platformName: 'صرافة الكترونية',
+  setPlatformName: () => {},
+  supportEmail: 'support@example.com',
+  setSupportEmail: () => {},
+  socialLinks: {},
+  setSocialLinks: () => {},
+});
 
-export const PlatformProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  // استرجاع اسم المنصة من التخزين المحلي إذا كان موجودًا
-  const [platformName, setPlatformName] = useState(() => {
-    const savedName = localStorage.getItem('platformName');
-    return savedName || 'C-Wallet Pro';
-  });
-
-  // حفظ اسم المنصة في التخزين المحلي عند تغييره
+export const PlatformProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [platformName, setPlatformName] = useState<string>('صرافة الكترونية');
+  const [supportEmail, setSupportEmail] = useState<string>('support@example.com');
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>({});
+  
+  useEffect(() => {
+    // Load saved platform name from localStorage
+    const savedPlatformName = localStorage.getItem('platformName');
+    if (savedPlatformName) {
+      setPlatformName(savedPlatformName);
+    }
+    
+    // Load saved support email
+    const savedSupportEmail = localStorage.getItem('supportEmail');
+    if (savedSupportEmail) {
+      setSupportEmail(savedSupportEmail);
+    }
+    
+    // Load saved social links
+    const savedSocialLinks = localStorage.getItem('socialLinks');
+    if (savedSocialLinks) {
+      try {
+        setSocialLinks(JSON.parse(savedSocialLinks));
+      } catch (error) {
+        console.error('Error parsing social links:', error);
+      }
+    }
+  }, []);
+  
+  // Save platform name to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('platformName', platformName);
-    
-    // تحديث عنوان الصفحة أيضًا
-    document.title = platformName;
-
-    // تحديث اسم المنصة في الـ HTML للتأكد من تغييره في كل مكان
-    const platformNameElements = document.querySelectorAll('.platform-name');
-    platformNameElements.forEach(element => {
-      element.textContent = platformName;
-    });
   }, [platformName]);
-
-  const updatePlatformName = (name: string) => {
-    setPlatformName(name);
-  };
+  
+  // Save support email to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('supportEmail', supportEmail);
+  }, [supportEmail]);
+  
+  // Save social links to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('socialLinks', JSON.stringify(socialLinks));
+  }, [socialLinks]);
 
   return (
-    <PlatformContext.Provider value={{
-      platformName,
-      updatePlatformName
+    <PlatformContext.Provider value={{ 
+      platformName, 
+      setPlatformName, 
+      supportEmail, 
+      setSupportEmail,
+      socialLinks,
+      setSocialLinks
     }}>
       {children}
     </PlatformContext.Provider>
   );
 };
 
-export const usePlatform = () => {
-  const context = useContext(PlatformContext);
-  if (context === undefined) {
-    throw new Error('usePlatform must be used within a PlatformProvider');
-  }
-  return context;
-};
+export const usePlatform = () => useContext(PlatformContext);

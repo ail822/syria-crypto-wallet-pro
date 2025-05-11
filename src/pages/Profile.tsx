@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import ProfileForm from '@/components/profile/ProfileForm';
 import PasswordChangeForm from '@/components/profile/PasswordChangeForm';
+import TwoFactorSettings from '@/components/profile/TwoFactorSettings';
 import TransactionsTable from '@/components/transactions/TransactionsTable';
 import { useAuth } from '@/context/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +25,7 @@ const Profile = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="profile">الملف الشخصي</TabsTrigger>
             <TabsTrigger value="password">تغيير كلمة المرور</TabsTrigger>
+            <TabsTrigger value="2fa">المصادقة الثنائية</TabsTrigger>
             <TabsTrigger value="transactions">سجل المعاملات</TabsTrigger>
           </TabsList>
           
@@ -33,6 +35,10 @@ const Profile = () => {
           
           <TabsContent value="password">
             <PasswordChangeForm />
+          </TabsContent>
+          
+          <TabsContent value="2fa">
+            <TwoFactorSettings />
           </TabsContent>
           
           <TabsContent value="transactions">
