@@ -1,77 +1,98 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTransaction } from '@/context/TransactionContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Currency } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useTransaction } from '@/context/TransactionContext';
+import CardSection from '@/components/ui/card-section';
+import { Currency } from '@/types';
 
 interface AdminWithdrawalMethodProps {
-  refreshMethods?: () => void;
+  refreshMethods: () => void;
 }
 
 const AdminWithdrawalMethod = ({ refreshMethods }: AdminWithdrawalMethodProps) => {
   const { addWithdrawalMethod } = useTransaction();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [supportedCurrency, setSupportedCurrency] = useState<Currency>('usdt');
-  const [requiresApproval, setRequiresApproval] = useState(true);
-  const [feePercentage, setFeePercentage] = useState('1');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeCurrencies, setActiveCurrencies] = useState<{ code: string; name: string }[]>([
+    { code: 'usdt', name: 'USDT' },
+    { code: 'syp', name: 'الليرة السورية' }
+  ]);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    supportedCurrency: 'usdt',
+    isActive: true,
+    requiresApproval: true,
+    feePercentage: 1
+  });
+
+  // Load active currencies
+  useEffect(() => {
+    try {
+      const currenciesStr = localStorage.getItem('supportedCurrencies');
+      if (currenciesStr) {
+        const allCurrencies = JSON.parse(currenciesStr);
+        // Filter only active currencies
+        const active = allCurrencies
+          .filter((c: { isActive: boolean }) => c.isActive)
+          .map((c: { code: string; name: string }) => ({
+            code: c.code,
+            name: c.name
+          }));
+        
+        if (active.length > 0) {
+          setActiveCurrencies(active);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى إدخال اسم طريقة السحب",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (parseFloat(feePercentage) < 0 || parseFloat(feePercentage) > 100) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى إدخال نسبة عمولة صحيحة (0-100)",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       setIsLoading(true);
       
+      if (!formData.name.trim()) {
+        toast({
+          title: "اسم طريقة السحب مطلوب",
+          description: "الرجاء إدخال اسم طريقة السحب",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       await addWithdrawalMethod({
-        name,
-        description,
-        isActive,
-        supportedCurrency,
-        requiresApproval,
-        feePercentage: parseFloat(feePercentage),
+        name: formData.name,
+        description: formData.description,
+        supportedCurrency: formData.supportedCurrency as Currency,
+        isActive: formData.isActive,
+        requiresApproval: formData.requiresApproval,
+        feePercentage: formData.feePercentage
       });
       
       // Reset form
-      setName('');
-      setDescription('');
-      setSupportedCurrency('usdt');
-      setRequiresApproval(true);
-      setFeePercentage('1');
+      setFormData({
+        name: '',
+        description: '',
+        supportedCurrency: 'usdt',
+        isActive: true,
+        requiresApproval: true,
+        feePercentage: 1
+      });
       
-      if (refreshMethods) {
-        refreshMethods();
-      }
+      // Refresh methods list
+      refreshMethods();
     } catch (error) {
-      console.error("Error adding withdrawal method:", error);
       toast({
         title: "حدث خطأ",
-        description: "لم نتمكن من إضافة طريقة السحب",
+        description: "فشل إضافة طريقة السحب",
         variant: "destructive",
       });
     } finally {
@@ -80,95 +101,82 @@ const AdminWithdrawalMethod = ({ refreshMethods }: AdminWithdrawalMethodProps) =
   };
 
   return (
-    <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium text-white">إضافة طريقة سحب جديدة</CardTitle>
-        <CardDescription className="text-muted-foreground">
-          أضف طريقة سحب جديدة ليستخدمها المستخدمين
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">اسم طريقة السحب</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: بنك سوريا الدولي"
-              required
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">وصف الطريقة (اختياري)</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="تعليمات وتفاصيل للمستخدم"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label>العملة المدعومة</Label>
-            <RadioGroup 
-              value={supportedCurrency} 
-              onValueChange={(value) => setSupportedCurrency(value as Currency)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="usdt" id="usdt-currency" />
-                <Label htmlFor="usdt-currency" className="font-medium">USDT</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="syp" id="syp-currency" />
-                <Label htmlFor="syp-currency" className="font-medium">ليرة سورية</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fee">نسبة العمولة (%)</Label>
-            <Input
-              id="fee"
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              value={feePercentage}
-              onChange={(e) => setFeePercentage(e.target.value)}
-              placeholder="أدخل النسبة المئوية"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="requires-approval"
-              checked={requiresApproval}
-              onCheckedChange={setRequiresApproval}
-            />
-            <Label htmlFor="requires-approval" className="flex-grow">تحتاج موافقة الإدارة</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="is-active"
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
-            <Label htmlFor="is-active" className="flex-grow">مفعّلة</Label>
-          </div>
-          
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "جاري الإضافة..." : "إضافة طريقة السحب"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <CardSection title="إضافة طريقة سحب جديدة">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">اسم طريقة السحب</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="مثال: بنك X"
+            className="bg-[#242C3E] border-[#2A3348] text-white"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="description">الوصف (اختياري)</Label>
+          <Input
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="تفاصيل إضافية عن طريقة السحب"
+            className="bg-[#242C3E] border-[#2A3348] text-white"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="supportedCurrency">العملة المدعومة</Label>
+          <select
+            id="supportedCurrency"
+            value={formData.supportedCurrency}
+            onChange={(e) => setFormData({ ...formData, supportedCurrency: e.target.value })}
+            className="w-full p-2 rounded bg-[#242C3E] border border-[#2A3348] text-white"
+          >
+            {activeCurrencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.name} ({currency.code.toUpperCase()})
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="feePercentage">نسبة العمولة (%)</Label>
+          <Input
+            id="feePercentage"
+            type="number"
+            step="0.1"
+            value={formData.feePercentage}
+            onChange={(e) => setFormData({ ...formData, feePercentage: parseFloat(e.target.value) })}
+            placeholder="1"
+            className="bg-[#242C3E] border-[#2A3348] text-white"
+          />
+        </div>
+        
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <Switch
+            id="isActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+          />
+          <Label htmlFor="isActive">تفعيل طريقة السحب</Label>
+        </div>
+        
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <Switch
+            id="requiresApproval"
+            checked={formData.requiresApproval}
+            onCheckedChange={(checked) => setFormData({ ...formData, requiresApproval: checked })}
+          />
+          <Label htmlFor="requiresApproval">تتطلب موافقة الإدارة</Label>
+        </div>
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "جارٍ الإضافة..." : "إضافة طريقة سحب جديدة"}
+        </Button>
+      </form>
+    </CardSection>
   );
 };
 

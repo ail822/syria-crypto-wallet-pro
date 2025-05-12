@@ -1,74 +1,78 @@
+
 import React from 'react';
-import { Facebook, Youtube, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Facebook, YoutubeIcon, MessageCircle } from 'lucide-react';
 import { usePlatform } from '@/context/PlatformContext';
 
 const Footer = () => {
   const { platformName, socialLinks } = usePlatform();
-  
-  const renderSocialIcon = (name: string, url: string | undefined) => {
-    if (!url) return null;
-    
-    const iconProps = { className: "h-5 w-5", "aria-hidden": true };
-    let icon;
-    
-    switch (name) {
-      case 'facebook':
-        icon = <Facebook {...iconProps} />;
-        break;
-      case 'youtube':
-        icon = <Youtube {...iconProps} />;
-        break;
-      case 'telegram':
-        icon = <MessageCircle {...iconProps} />;
-        break;
-      case 'whatsapp':
-        icon = <MessageCircle {...iconProps} />;
-        break;
-      default:
-        return null;
-    }
-    
-    return (
-      <a 
-        href={url} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="flex items-center justify-center h-10 w-10 rounded-full bg-[#1A1E2C] hover:bg-primary/20 transition-colors"
-      >
-        {icon}
-      </a>
-    );
-  };
 
   return (
-    <footer className="bg-[#0F131A] text-white py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-6 md:mb-0">
-            <div className="text-xl font-bold mb-2">{platformName}</div>
-            <p className="text-sm text-white/60">منصة تحويل العملات وإدارة الأرصدة</p>
+    <footer className="bg-[#0C1221] text-white">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold">{platformName}</h3>
+            <p className="text-gray-400">
+              منصة متكاملة لتحويل العملات وإدارة الأرصدة بطريقة آمنة وسهلة
+            </p>
+            <div className="flex space-x-4 rtl:space-x-reverse">
+              {socialLinks?.facebook && (
+                <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
+                  <Facebook className="h-5 w-5" />
+                  <span className="sr-only">Facebook</span>
+                </a>
+              )}
+              {socialLinks?.youtube && (
+                <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
+                  <YoutubeIcon className="h-5 w-5" />
+                  <span className="sr-only">YouTube</span>
+                </a>
+              )}
+              {socialLinks?.telegram && (
+                <a href={socialLinks.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary">
+                  <MessageCircle className="h-5 w-5" />
+                  <span className="sr-only">Telegram</span>
+                </a>
+              )}
+            </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="flex gap-3">
-              {renderSocialIcon('facebook', socialLinks?.facebook)}
-              {renderSocialIcon('youtube', socialLinks?.youtube)}
-              {renderSocialIcon('telegram', socialLinks?.telegram)}
-              {renderSocialIcon('whatsapp', socialLinks?.whatsapp)}
-            </div>
-            
-            <div className="h-8 w-px bg-white/20 hidden sm:block"></div>
-            
-            <div className="flex gap-6">
-              <a href="/terms" className="text-sm text-white/60 hover:text-white">شروط الاستخدام</a>
-              <a href="/privacy" className="text-sm text-white/60 hover:text-white">سياسة الاستخدام</a>
-              <a href="/contact" className="text-sm text-white/60 hover:text-white">اتصل بنا</a>
-            </div>
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">الروابط المفيدة</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/" className="text-gray-400 hover:text-primary">الرئيسية</Link>
+              </li>
+              <li>
+                <Link to="/login" className="text-gray-400 hover:text-primary">تسجيل الدخول</Link>
+              </li>
+              <li>
+                <Link to="/register" className="text-gray-400 hover:text-primary">إنشاء حساب</Link>
+              </li>
+            </ul>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">السياسات والمساعدة</h3>
+            <ul className="space-y-2">
+              <li>
+                <Link to="/terms" className="text-gray-400 hover:text-primary">شروط الاستخدام</Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="text-gray-400 hover:text-primary">سياسة الخصوصية</Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-400 hover:text-primary">اتصل بنا</Link>
+              </li>
+            </ul>
           </div>
         </div>
         
-        <div className="text-center mt-8 text-xs text-white/40">
-          © {new Date().getFullYear()} {platformName}. جميع الحقوق محفوظة
+        <div className="border-t border-gray-800 mt-12 pt-8 text-center">
+          <p className="text-gray-500">
+            © {new Date().getFullYear()} {platformName}. جميع الحقوق محفوظة.
+          </p>
         </div>
       </div>
     </footer>

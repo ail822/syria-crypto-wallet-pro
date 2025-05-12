@@ -16,12 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Transaction, User as UserType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { sendTransactionBackup } from '@/utils/telegramBot';
 
 const PendingTransactions = () => {
-  const { transactions, updateTransactionStatus } = useTransaction();
+  const { transactions, updateTransactionStatus, depositMethods, withdrawalMethods } = useTransaction();
   const [isLoading, setIsLoading] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -128,14 +129,37 @@ const PendingTransactions = () => {
     }
   };
 
-  const getWithdrawalMethodLabel = (method?: string) => {
-    switch (method) {
-      case 'province': return 'محافظة';
-      case 'mtn': return 'MTN';
-      case 'syriatel': return 'Syriatel';
-      case 'c-wallet': return 'C-Wallet';
-      default: return '';
+  // Get the name of the deposit method by ID
+  const getDepositMethodName = (methodId?: string) => {
+    if (!methodId) return '';
+    const method = depositMethods.find(m => m.id === methodId);
+    return method?.name || '';
+  };
+
+  // Get the name of the withdrawal method by ID
+  const getWithdrawalMethodName = (methodId?: string) => {
+    if (!methodId) return '';
+    const method = withdrawalMethods.find(m => m.id === methodId);
+    return method?.name || '';
+  };
+
+  // Get method name based on transaction type and ID
+  const getMethodName = (transaction: Transaction) => {
+    if (transaction.type === 'deposit' && transaction.depositMethodId) {
+      return getDepositMethodName(transaction.depositMethodId);
+    } else if (transaction.type === 'withdrawal' && transaction.withdrawalMethodId) {
+      return getWithdrawalMethodName(transaction.withdrawalMethodId);
+    } else if (transaction.type === 'withdrawal' && transaction.withdrawalMethod) {
+      // Legacy method name
+      switch (transaction.withdrawalMethod) {
+        case 'province': return 'محافظة';
+        case 'mtn': return 'MTN';
+        case 'syriatel': return 'Syriatel';
+        case 'c-wallet': return 'C-Wallet';
+        default: return transaction.withdrawalMethod;
+      }
     }
+    return '';
   };
 
   // Improved helper function to display user information
@@ -186,6 +210,8 @@ const PendingTransactions = () => {
           <div className="space-y-4">
             {pendingTransactions.map((transaction) => {
               const userInfo = findUserInfo(transaction.userId);
+              const methodName = getMethodName(transaction);
+              
               return (
                 <div 
                   key={transaction.id} 
@@ -197,10 +223,10 @@ const PendingTransactions = () => {
                         <span className="inline-block w-2 h-2 rounded-full bg-yellow-400"></span>
                         <span className="font-medium">
                           {getTransactionTypeLabel(transaction.type)}
-                          {transaction.type === 'withdrawal' && transaction.withdrawalMethod && (
-                            <span className="mr-1 text-muted-foreground text-sm">
-                              ({getWithdrawalMethodLabel(transaction.withdrawalMethod)})
-                            </span>
+                          {methodName && (
+                            <Badge variant="outline" className="mr-2">
+                              {methodName}
+                            </Badge>
                           )}
                         </span>
                       </div>

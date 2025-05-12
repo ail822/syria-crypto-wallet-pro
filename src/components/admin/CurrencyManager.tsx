@@ -2,286 +2,393 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from '@/hooks/use-toast';
-import { useTransaction } from '@/context/TransactionContext';
-import { Currency } from '@/types';
-import CardSection from '../ui/card-section';
 import { Badge } from '@/components/ui/badge';
-import { Trash } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { toast } from '@/hooks/use-toast';
+import CardSection from '@/components/ui/card-section';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useTransaction } from '@/context/TransactionContext';
+import { sendTelegramMessage } from '@/utils/telegramBot';
+import { Currency } from '@/types';
 
 const CurrencyManager = () => {
-  const { exchangeRate, updateExchangeRate } = useTransaction();
+  const { exchangeRate } = useTransaction();
+  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [currencyToDelete, setCurrencyToDelete] = useState<string | null>(null);
   
+  // New currency form state
   const [newCurrency, setNewCurrency] = useState({
     code: '',
     name: '',
-    exchangeRate: '',
-    minDeposit: '',
-    minWithdrawal: ''
+    exchangeRate: 1,
+    isActive: true,
+    minDeposit: 10,
+    minWithdrawal: 10
   });
-  
-  // استخدام localStorage لتخزين العملات
-  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{
-    code: string, 
-    name: string, 
-    exchangeRate: number,
-    minDeposit?: number,
-    minWithdrawal?: number
-  }>>([]);
-  
-  // تحميل العملات المحفوظة عند بدء التشغيل
+
+  // Load currencies on component mount
   useEffect(() => {
-    const savedCurrencies = localStorage.getItem('supportedCurrencies');
-    
-    if (savedCurrencies) {
-      setSupportedCurrencies(JSON.parse(savedCurrencies));
-    } else {
-      // إضافة العملات الافتراضية إذا لم تكن هناك عملات محفوظة
-      const defaultCurrencies = [
-        { 
-          code: 'usdt', 
-          name: 'USDT', 
-          exchangeRate: 1,
-          minDeposit: exchangeRate.min_deposit_usdt,
-          minWithdrawal: exchangeRate.min_withdrawal_usdt
-        },
-        { 
-          code: 'syp', 
-          name: 'الليرة السورية', 
-          exchangeRate: exchangeRate.usdt_to_syp,
-          minDeposit: exchangeRate.min_deposit_syp,
-          minWithdrawal: exchangeRate.min_withdrawal_syp
-        }
-      ];
-      
-      setSupportedCurrencies(defaultCurrencies);
-      localStorage.setItem('supportedCurrencies', JSON.stringify(defaultCurrencies));
-    }
+    loadCurrencies();
   }, []);
-  
-  // حفظ العملات عند تغييرها
-  useEffect(() => {
-    if (supportedCurrencies.length > 0) {
-      localStorage.setItem('supportedCurrencies', JSON.stringify(supportedCurrencies));
-      
-      // تحديث الحد الأدنى للعملات الأساسية
-      const usdt = supportedCurrencies.find(c => c.code === 'usdt');
-      const syp = supportedCurrencies.find(c => c.code === 'syp');
-      
-      if (usdt && syp) {
-        updateExchangeRate({
-          min_deposit_usdt: usdt.minDeposit || 10,
-          min_withdrawal_usdt: usdt.minWithdrawal || 10,
-          min_deposit_syp: syp.minDeposit || 100000,
-          min_withdrawal_syp: syp.minWithdrawal || 100000
-        });
+
+  const loadCurrencies = () => {
+    try {
+      const savedCurrencies = localStorage.getItem('supportedCurrencies');
+      if (savedCurrencies) {
+        setCurrencies(JSON.parse(savedCurrencies));
+      } else {
+        // Set default currencies if none exist
+        const defaultCurrencies = [
+          { 
+            code: 'usdt', 
+            name: 'Tether USD',
+            exchangeRate: 1,
+            isActive: true,
+            minDeposit: exchangeRate.min_deposit_usdt,
+            minWithdrawal: exchangeRate.min_withdrawal_usdt
+          },
+          { 
+            code: 'syp', 
+            name: 'الليرة السورية',
+            exchangeRate: exchangeRate.usdt_to_syp,
+            isActive: true,
+            minDeposit: exchangeRate.min_deposit_syp,
+            minWithdrawal: exchangeRate.min_withdrawal_syp
+          }
+        ];
+        setCurrencies(defaultCurrencies);
+        localStorage.setItem('supportedCurrencies', JSON.stringify(defaultCurrencies));
       }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
     }
-  }, [supportedCurrencies]);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const handleAddCurrency = () => {
-    if (!newCurrency.code || !newCurrency.name || !newCurrency.exchangeRate) {
-      toast({
-        title: "بيانات غير مكتملة",
-        description: "يرجى تعبئة جميع بيانات العملة",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const currencyCode = newCurrency.code.toLowerCase();
-    if (supportedCurrencies.some(c => c.code === currencyCode)) {
-      toast({
-        title: "العملة موجودة",
-        description: "هذه العملة موجودة بالفعل",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    // إضافة العملة الجديدة مع الحد الأدنى للإيداع والسحب
-    setTimeout(() => {
-      const newCurrencyObj = {
-        code: currencyCode,
-        name: newCurrency.name,
-        exchangeRate: parseFloat(newCurrency.exchangeRate),
-        minDeposit: newCurrency.minDeposit ? parseFloat(newCurrency.minDeposit) : 0,
-        minWithdrawal: newCurrency.minWithdrawal ? parseFloat(newCurrency.minWithdrawal) : 0
-      };
+  };
+
+  const handleAddCurrency = async () => {
+    try {
+      setIsLoading(true);
       
-      const updatedCurrencies = [...supportedCurrencies, newCurrencyObj];
+      // Validate inputs
+      if (!newCurrency.code.trim()) {
+        toast({
+          title: "رمز العملة مطلوب",
+          description: "الرجاء إدخال رمز العملة",
+          variant: "destructive",
+        });
+        return;
+      }
       
-      setSupportedCurrencies(updatedCurrencies);
+      if (!newCurrency.name.trim()) {
+        toast({
+          title: "اسم العملة مطلوب",
+          description: "الرجاء إدخال اسم العملة",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (newCurrency.exchangeRate <= 0) {
+        toast({
+          title: "سعر الصرف غير صحيح",
+          description: "يجب أن يكون سعر الصرف أكبر من صفر",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for duplicate currency code
+      if (currencies.some(c => c.code.toLowerCase() === newCurrency.code.toLowerCase())) {
+        toast({
+          title: "العملة موجودة بالفعل",
+          description: "يوجد بالفعل عملة بنفس الرمز",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Add new currency
+      const updatedCurrencies = [...currencies, newCurrency];
+      setCurrencies(updatedCurrencies);
       localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
+      
+      // Send backup to Telegram
+      await sendTelegramMessage(`🌐 *إضافة عملة جديدة*\n\n` +
+        `💱 الرمز: ${newCurrency.code}\n` +
+        `📝 الاسم: ${newCurrency.name}\n` +
+        `📊 سعر الصرف: ${newCurrency.exchangeRate} USDT\n` +
+        `🟢 الحالة: ${newCurrency.isActive ? 'مفعلة' : 'معطلة'}\n` +
+        `💵 الحد الأدنى للإيداع: ${newCurrency.minDeposit}\n` +
+        `💴 الحد الأدنى للسحب: ${newCurrency.minWithdrawal}\n\n` +
+        `⏱️ وقت الإضافة: ${new Date().toLocaleString('ar-SA')}`
+      );
       
       // Reset form
       setNewCurrency({
         code: '',
         name: '',
-        exchangeRate: '',
-        minDeposit: '',
-        minWithdrawal: ''
+        exchangeRate: 1,
+        isActive: true,
+        minDeposit: 10,
+        minWithdrawal: 10
       });
       
-      setIsLoading(false);
-      
+      toast({ title: "تمت إضافة العملة بنجاح" });
+    } catch (error) {
+      console.error('Error adding currency:', error);
       toast({
-        title: "تمت الإضافة بنجاح",
-        description: `تم إضافة عملة ${newCurrency.name} بنجاح`,
-      });
-    }, 500);
-  };
-  
-  const handleDeleteCurrency = (code: string) => {
-    // Don't allow deletion of base currencies
-    if (code === 'usdt' || code === 'syp') {
-      toast({
-        title: "لا يمكن الحذف",
-        description: "لا يمكن حذف العملات الأساسية",
+        title: "فشل إضافة العملة",
+        description: "حدث خطأ أثناء إضافة العملة الجديدة",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    
-    const updatedCurrencies = supportedCurrencies.filter(c => c.code !== code);
-    setSupportedCurrencies(updatedCurrencies);
-    localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
-    
-    toast({
-      title: "تم الحذف",
-      description: "تم حذف العملة بنجاح",
-    });
   };
-  
+
+  const handleDeleteCurrency = async (code: string) => {
+    try {
+      // Don't allow deletion of USDT or SYP (core currencies)
+      if (code === 'usdt' || code === 'syp') {
+        toast({
+          title: "لا يمكن حذف العملات الأساسية",
+          description: "لا يمكن حذف USDT أو الليرة السورية",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const currency = currencies.find(c => c.code === code);
+      const updatedCurrencies = currencies.filter(c => c.code !== code);
+      setCurrencies(updatedCurrencies);
+      localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
+      
+      // Send backup to Telegram
+      if (currency) {
+        await sendTelegramMessage(`🗑️ *حذف عملة*\n\n` +
+          `💱 الرمز: ${currency.code}\n` +
+          `📝 الاسم: ${currency.name}\n\n` +
+          `⏱️ وقت الحذف: ${new Date().toLocaleString('ar-SA')}`
+        );
+      }
+      
+      toast({ title: "تم حذف العملة بنجاح" });
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting currency:', error);
+      toast({
+        title: "فشل حذف العملة",
+        description: "حدث خطأ أثناء حذف العملة",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleActivation = async (code: string, isActive: boolean) => {
+    try {
+      const updatedCurrencies = currencies.map(c => 
+        c.code === code ? { ...c, isActive } : c
+      );
+      setCurrencies(updatedCurrencies);
+      localStorage.setItem('supportedCurrencies', JSON.stringify(updatedCurrencies));
+      
+      const currency = currencies.find(c => c.code === code);
+      
+      // Send backup to Telegram
+      if (currency) {
+        await sendTelegramMessage(`🔄 *تغيير حالة عملة*\n\n` +
+          `💱 الرمز: ${currency.code}\n` +
+          `📝 الاسم: ${currency.name}\n` +
+          `🟢 الحالة الجديدة: ${isActive ? 'مفعلة' : 'معطلة'}\n\n` +
+          `⏱️ وقت التغيير: ${new Date().toLocaleString('ar-SA')}`
+        );
+      }
+      
+      toast({ 
+        title: `تم ${isActive ? 'تفعيل' : 'تعطيل'} العملة بنجاح`, 
+      });
+    } catch (error) {
+      console.error('Error toggling currency activation:', error);
+      toast({
+        title: "فشل تغيير حالة العملة",
+        description: "حدث خطأ أثناء تغيير حالة العملة",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDelete = (code: string) => {
+    setCurrencyToDelete(code);
+    setShowDeleteDialog(true);
+  };
+
   return (
     <CardSection title="إدارة العملات">
       <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-3">إضافة عملة جديدة</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <h3 className="font-medium">إضافة عملة جديدة</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="currency-code">رمز العملة</Label>
+              <Input
+                id="currency-code"
+                value={newCurrency.code}
+                onChange={(e) => setNewCurrency({...newCurrency, code: e.target.value.toLowerCase()})}
+                placeholder="مثال: usd"
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+              <p className="text-xs text-muted-foreground">رمز مختصر للعملة (مثل: usdt, eur, btc)</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="currency-name">اسم العملة</Label>
+              <Input
+                id="currency-name"
+                value={newCurrency.name}
+                onChange={(e) => setNewCurrency({...newCurrency, name: e.target.value})}
+                placeholder="مثال: الدولار الأمريكي"
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="exchange-rate">سعر الصرف مقابل USDT</Label>
+              <Input
+                id="exchange-rate"
+                type="number"
+                step="0.00000001"
+                value={newCurrency.exchangeRate}
+                onChange={(e) => setNewCurrency({...newCurrency, exchangeRate: parseFloat(e.target.value)})}
+                placeholder="1"
+                className="bg-[#242C3E] border-[#2A3348] text-white"
+              />
+              <p className="text-xs text-muted-foreground">1 من العملة الجديدة = ? USDT</p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="currency_code">رمز العملة</Label>
+                <Label htmlFor="min-deposit">الحد الأدنى للإيداع</Label>
                 <Input
-                  id="currency_code"
-                  value={newCurrency.code}
-                  onChange={(e) => setNewCurrency({...newCurrency, code: e.target.value})}
-                  placeholder="USD"
-                  className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="currency_name">اسم العملة</Label>
-                <Input
-                  id="currency_name"
-                  value={newCurrency.name}
-                  onChange={(e) => setNewCurrency({...newCurrency, name: e.target.value})}
-                  placeholder="دولار أمريكي"
-                  className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="exchange_rate">سعر الصرف (مقابل USDT)</Label>
-                <Input
-                  id="exchange_rate"
+                  id="min-deposit"
                   type="number"
-                  value={newCurrency.exchangeRate}
-                  onChange={(e) => setNewCurrency({...newCurrency, exchangeRate: e.target.value})}
-                  placeholder="1.0"
-                  className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
+                  value={newCurrency.minDeposit}
+                  onChange={(e) => setNewCurrency({...newCurrency, minDeposit: parseFloat(e.target.value)})}
+                  className="bg-[#242C3E] border-[#2A3348] text-white"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="min-withdrawal">الحد الأدنى للسحب</Label>
+                <Input
+                  id="min-withdrawal"
+                  type="number"
+                  value={newCurrency.minWithdrawal}
+                  onChange={(e) => setNewCurrency({...newCurrency, minWithdrawal: parseFloat(e.target.value)})}
+                  className="bg-[#242C3E] border-[#2A3348] text-white"
                 />
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="min_deposit">الحد الأدنى للإيداع</Label>
-                <Input
-                  id="min_deposit"
-                  type="number"
-                  value={newCurrency.minDeposit}
-                  onChange={(e) => setNewCurrency({...newCurrency, minDeposit: e.target.value})}
-                  placeholder="10"
-                  className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="min_withdrawal">الحد الأدنى للسحب</Label>
-                <Input
-                  id="min_withdrawal"
-                  type="number"
-                  value={newCurrency.minWithdrawal}
-                  onChange={(e) => setNewCurrency({...newCurrency, minWithdrawal: e.target.value})}
-                  placeholder="10"
-                  className="bg-[#242C3E] border-[#2A3348] text-white dark:bg-[#242C3E] dark:border-[#2A3348] dark:text-white"
-                />
-              </div>
+            <div className="flex items-center space-x-2 rtl:space-x-reverse pt-2">
+              <Switch
+                id="currency-active"
+                checked={newCurrency.isActive}
+                onCheckedChange={(checked) => setNewCurrency({...newCurrency, isActive: checked})}
+              />
+              <Label htmlFor="currency-active">تفعيل العملة</Label>
             </div>
             
             <Button 
-              className="w-full" 
               onClick={handleAddCurrency}
               disabled={isLoading}
+              className="w-full"
             >
-              {isLoading ? "جاري الإضافة..." : "إضافة العملة"}
+              {isLoading ? "جارٍ الإضافة..." : "إضافة عملة جديدة"}
             </Button>
           </div>
-        </div>
-        
-        <div>
-          <h3 className="text-lg font-medium mb-3">العملات المدعومة</h3>
-          <div className="space-y-3">
-            {supportedCurrencies.map((currency) => (
-              <div 
-                key={currency.code}
-                className="p-3 bg-[#1E293B] dark:bg-[#1E293B] border border-[#2A3348] dark:border-[#2A3348] rounded-lg"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Badge variant="secondary" className="uppercase">{currency.code}</Badge>
-                    <span className="font-medium">{currency.name}</span>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    {currency.code !== 'usdt' && currency.code !== 'syp' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteCurrency(currency.code)}
-                      >
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">سعر الصرف:</span>
-                    <span>1 USDT = {currency.exchangeRate} {currency.code.toUpperCase()}</span>
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">الحد الأدنى للإيداع:</span>
-                    <span>{currency.minDeposit || 0} {currency.code.toUpperCase()}</span>
-                  </div>
-                  <div className="flex justify-between sm:block">
-                    <span className="text-muted-foreground">الحد الأدنى للسحب:</span>
-                    <span>{currency.minWithdrawal || 0} {currency.code.toUpperCase()}</span>
-                  </div>
-                </div>
+          
+          <div>
+            <h3 className="font-medium mb-4">العملات المدعومة</h3>
+            
+            {currencies.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                لم يتم إضافة عملات بعد
               </div>
-            ))}
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {currencies.map((currency) => (
+                  <div 
+                    key={currency.code} 
+                    className="p-3 border border-[#2A3348] rounded-lg bg-[#1E293B]"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="font-medium uppercase">{currency.code}</div>
+                        <Badge variant={currency.isActive ? "default" : "secondary"} className="mr-2">
+                          {currency.isActive ? "مفعلة" : "معطلة"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <Switch 
+                          checked={currency.isActive} 
+                          onCheckedChange={(checked) => handleToggleActivation(currency.code, checked)}
+                          disabled={currency.code === 'usdt'}
+                        />
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-2">{currency.name}</p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-2 gap-y-1 text-sm">
+                      <div>سعر الصرف: {currency.exchangeRate} USDT</div>
+                      <div>الحد الأدنى للإيداع: {currency.minDeposit}</div>
+                      <div>الحد الأدنى للسحب: {currency.minWithdrawal}</div>
+                      
+                      {/* Don't show delete button for core currencies */}
+                      {currency.code !== 'usdt' && currency.code !== 'syp' && (
+                        <div className="sm:col-span-2 mt-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => confirmDelete(currency.code)}
+                            className="w-full"
+                          >
+                            حذف العملة
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
+      
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من حذف هذه العملة؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف هذه العملة نهائيًا من النظام. لن تتمكن من استردادها بعد ذلك.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => currencyToDelete && handleDeleteCurrency(currencyToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </CardSection>
   );
 };

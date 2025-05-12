@@ -1,125 +1,86 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext';
-import { useTransaction } from '@/context/TransactionContext';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { RefreshCcw } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ar } from 'date-fns/locale';
+import { useBalanceRefresh } from '@/hooks/useBalanceRefresh';
 
 const BalanceCard = () => {
-  const { user } = useAuth();
-  const { exchangeRate } = useTransaction();
-  const [supportedCurrencies, setSupportedCurrencies] = useState<Array<{code: string, name: string, exchangeRate: number}>>([]);
+  const { balances, isRefreshing, lastRefreshed, forceRefresh } = useBalanceRefresh();
   
-  // تحميل العملات المدعومة
-  useEffect(() => {
-    const savedCurrencies = localStorage.getItem('supportedCurrencies');
-    if (savedCurrencies) {
-      setSupportedCurrencies(JSON.parse(savedCurrencies));
-    }
-  }, []);
-  
-  if (!user) return null;
-
-  // إنشاء أرصدة افتراضية للعملات المضافة مؤخرا إذا لم تكن موجودة
-  const getBalanceForCurrency = (code: string) => {
-    return (user.balances as any)[code] !== undefined ? (user.balances as any)[code] : 0;
-  };
-
-  // تحديد ألوان مختلفة للعملات
-  const getCurrencyColor = (index: number) => {
-    const colors = [
-      "from-blue-600 to-indigo-700", // USDT
-      "from-emerald-600 to-teal-700", // SYP
-      "from-purple-600 to-indigo-700",
-      "from-rose-600 to-pink-700",
-      "from-amber-600 to-yellow-700",
-      "from-sky-600 to-blue-700"
-    ];
-    return colors[index % colors.length];
-  };
-
-  // Safe formatting function to prevent null errors
-  const formatNumber = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return '0';
-    
-    // Ensure the value is a number
-    const numValue = typeof value === 'number' ? value : parseFloat(String(value));
-    
-    // Handle NaN case
-    if (isNaN(numValue)) return '0';
-    
-    return numValue.toLocaleString();
+  // Format date for last refreshed time
+  const getLastRefreshedText = () => {
+    if (!lastRefreshed) return 'لم يتم التحديث بعد';
+    return `آخر تحديث ${formatDistanceToNow(lastRefreshed, { addSuffix: true, locale: ar })}`;
   };
 
   return (
     <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
-      <CardContent className="p-6">
-        <h2 className="text-lg font-medium mb-4 text-white">الرصيد الحالي</h2>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* USDT Balance */}
-          <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-80">رصيد USDT</p>
-                <p className="text-2xl font-bold mt-1">${formatNumber(user.balances.usdt)}</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="font-bold">USDT</span>
-              </div>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xl font-bold">رصيدك الحالي</CardTitle>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          onClick={forceRefresh}
+          disabled={isRefreshing}
+        >
+          <RefreshCcw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="sr-only">تحديث الرصيد</span>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(balances).map(([currency, balance]) => (
+            <div 
+              key={currency}
+              className="bg-[#242C3E] rounded-lg p-4 border border-[#2A3348]"
+            >
+              <p className="text-sm text-muted-foreground mb-1">{getCurrencyName(currency)}</p>
+              <p className="text-2xl font-bold">
+                {formatCurrency(balance, currency)}
+              </p>
             </div>
-          </div>
-          
-          {/* SYP Balance */}
-          <div className="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm opacity-80">رصيد الليرة السورية</p>
-                <p className="text-2xl font-bold mt-1">{formatNumber(user.balances.syp)} ل.س</p>
-              </div>
-              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="font-bold">SYP</span>
-              </div>
-            </div>
-          </div>
-          
-          {/* Other Currencies */}
-          {supportedCurrencies
-            .filter(currency => currency.code !== 'usdt' && currency.code !== 'syp')
-            .map((currency, index) => (
-              <div 
-                key={currency.code}
-                className={`bg-gradient-to-br ${getCurrencyColor(index + 2)} rounded-xl p-4 text-white shadow-lg`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm opacity-80">رصيد {currency.name}</p>
-                    <p className="text-2xl font-bold mt-1">
-                      {formatNumber(getBalanceForCurrency(currency.code))} {currency.code.toUpperCase()}
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="font-bold">{currency.code.toUpperCase()}</span>
-                  </div>
-                </div>
-              </div>
-            ))
-          }
+          ))}
         </div>
         
-        {/* Exchange Rate Info */}
-        <div className="mt-4 p-3 bg-blue-900/30 rounded-lg border border-blue-800/50">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-muted-foreground text-sm">1 USDT = </span>
-            <span className="text-white">{formatNumber(exchangeRate.usdt_to_syp)} ل.س</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground text-sm">العمولة:</span>
-            <span className="text-white">{exchangeRate.fee_percentage}%</span>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground mt-4 text-center">
+          {getLastRefreshedText()} (يتم التحديث تلقائيًا كل 10 ثوانٍ)
+        </p>
       </CardContent>
     </Card>
   );
+};
+
+// Helper functions
+const getCurrencyName = (code: string): string => {
+  switch (code.toLowerCase()) {
+    case 'usdt':
+      return 'Tether USD';
+    case 'syp':
+      return 'الليرة السورية';
+    default:
+      // Try to load currency name from supportedCurrencies
+      try {
+        const supportedCurrencies = JSON.parse(localStorage.getItem('supportedCurrencies') || '[]');
+        const currency = supportedCurrencies.find((c: any) => c.code.toLowerCase() === code.toLowerCase());
+        return currency?.name || code.toUpperCase();
+      } catch (e) {
+        return code.toUpperCase();
+      }
+  }
+};
+
+const formatCurrency = (amount: number, code: string): string => {
+  const formatter = new Intl.NumberFormat('ar-SA', {
+    style: 'decimal',
+    minimumFractionDigits: code.toLowerCase() === 'usdt' ? 2 : 0,
+    maximumFractionDigits: code.toLowerCase() === 'usdt' ? 2 : 0,
+  });
+  
+  return `${formatter.format(amount)} ${code.toUpperCase()}`;
 };
 
 export default BalanceCard;

@@ -6,12 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
-import { MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, CheckCircle, AlertCircle, Save, Folder } from 'lucide-react';
 import { 
   loadTelegramConfig, 
+  saveTelegramConfig,
   enableTelegramBot, 
   disableTelegramBot, 
-  sendTelegramMessage 
+  sendTelegramMessage,
+  toggleAutoBackup,
+  createSystemBackup
 } from '@/utils/telegramBot';
 import CardSection from '@/components/ui/card-section';
 
@@ -20,7 +23,9 @@ const TelegramBotSettings = () => {
     enabled: false,
     adminId: '',
     token: '',
-    lastSyncTime: 0
+    lastSyncTime: 0,
+    autoBackup: false,
+    lastBackupTime: 0
   });
   const [isLoading, setIsLoading] = useState(false);
   const [testMessage, setTestMessage] = useState('');
@@ -134,13 +139,80 @@ const TelegramBotSettings = () => {
       
       if (success) {
         toast({
-          title: "تم إرسال الرسالة بنجاح",
+          title: "تم إضافة الرسالة إلى قائمة الانتظار",
+          description: "سيتم إرسال الرسالة قريبًا"
         });
         setTestMessage('');
       } else {
         toast({
           title: "فشل إرسال الرسالة",
           description: "تأكد من تكوين البوت بشكل صحيح",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "حدث خطأ",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleAutoBackup = async (enabled: boolean) => {
+    try {
+      setIsLoading(true);
+      
+      const success = toggleAutoBackup(enabled);
+      
+      if (success) {
+        // Refresh config
+        const updatedConfig = loadTelegramConfig();
+        setConfig(updatedConfig);
+        
+        toast({
+          title: enabled ? "تم تفعيل النسخ الاحتياطي التلقائي" : "تم إيقاف النسخ الاحتياطي التلقائي",
+        });
+      } else {
+        toast({
+          title: "فشل تغيير إعدادات النسخ الاحتياطي",
+          description: "تأكد من أن البوت مفعل",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "حدث خطأ",
+        description: "يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateBackupNow = async () => {
+    try {
+      setIsLoading(true);
+      
+      const success = await createSystemBackup();
+      
+      if (success) {
+        // Refresh config
+        const updatedConfig = loadTelegramConfig();
+        setConfig(updatedConfig);
+        
+        toast({
+          title: "تم إنشاء نسخة احتياطية بنجاح",
+        });
+      } else {
+        toast({
+          title: "فشل إنشاء نسخة احتياطية",
+          description: "تأكد من أن البوت مفعل",
           variant: "destructive",
         });
       }
@@ -239,27 +311,64 @@ const TelegramBotSettings = () => {
         </div>
         
         {config.enabled && (
-          <div className="space-y-4 pt-4 mt-4 border-t border-[#2A3348]">
-            <h3 className="text-lg font-medium">اختبار الاتصال</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="testMessage">رسالة اختبارية</Label>
-              <Input
-                id="testMessage"
-                value={testMessage}
-                onChange={(e) => setTestMessage(e.target.value)}
-                placeholder="أدخل رسالة لاختبار الاتصال مع البوت"
-                className="bg-[#242C3E] border-[#2A3348] text-white"
-              />
+          <>
+            <div className="space-y-4 pt-4 mt-4 border-t border-[#2A3348]">
+              <h3 className="text-lg font-medium">نظام النسخ الاحتياطي</h3>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium">النسخ الاحتياطي التلقائي</h4>
+                  <p className="text-sm text-muted-foreground">إرسال نسخة احتياطية عند كل معاملة</p>
+                </div>
+                <Switch 
+                  checked={config.autoBackup} 
+                  onCheckedChange={handleToggleAutoBackup} 
+                  disabled={isLoading}
+                />
+              </div>
+              
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  {config.lastBackupTime > 0 ? 
+                    `آخر نسخة احتياطية: ${new Date(config.lastBackupTime).toLocaleString('ar-SA')}` : 
+                    'لم يتم إنشاء نسخة احتياطية بعد'
+                  }
+                </p>
+                
+                <Button
+                  onClick={handleCreateBackupNow}
+                  disabled={isLoading}
+                  className="w-full sm:w-auto"
+                  variant="outline"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  إنشاء نسخة احتياطية الآن
+                </Button>
+              </div>
             </div>
             
-            <Button
-              onClick={handleSendTestMessage}
-              disabled={isLoading || !testMessage.trim()}
-            >
-              إرسال رسالة اختبارية
-            </Button>
-          </div>
+            <div className="space-y-4 pt-4 mt-4 border-t border-[#2A3348]">
+              <h3 className="text-lg font-medium">اختبار الاتصال</h3>
+              
+              <div className="space-y-2">
+                <Label htmlFor="testMessage">رسالة اختبارية</Label>
+                <Input
+                  id="testMessage"
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  placeholder="أدخل رسالة لاختبار الاتصال مع البوت"
+                  className="bg-[#242C3E] border-[#2A3348] text-white"
+                />
+              </div>
+              
+              <Button
+                onClick={handleSendTestMessage}
+                disabled={isLoading || !testMessage.trim()}
+              >
+                إرسال رسالة اختبارية
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </CardSection>

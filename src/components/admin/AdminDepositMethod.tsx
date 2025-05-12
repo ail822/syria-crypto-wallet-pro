@@ -1,68 +1,98 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTransaction } from '@/context/TransactionContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Currency } from '@/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { useTransaction } from '@/context/TransactionContext';
+import CardSection from '@/components/ui/card-section';
+import { Currency } from '@/types';
 
 interface AdminDepositMethodProps {
-  refreshMethods?: () => void;
+  refreshMethods: () => void;
 }
 
 const AdminDepositMethod = ({ refreshMethods }: AdminDepositMethodProps) => {
   const { addDepositMethod } = useTransaction();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [acceptedCurrency, setAcceptedCurrency] = useState<Currency>('usdt');
   const [isLoading, setIsLoading] = useState(false);
-  const [requiresImage, setRequiresImage] = useState(true);
-  const [requiresTransactionId, setRequiresTransactionId] = useState(true);
+  const [activeCurrencies, setActiveCurrencies] = useState<{ code: string; name: string }[]>([
+    { code: 'usdt', name: 'USDT' },
+    { code: 'syp', name: 'الليرة السورية' }
+  ]);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    acceptedCurrency: 'usdt',
+    isActive: true,
+    requiresImage: true,
+    requiresTransactionId: false
+  });
+
+  // Load active currencies
+  useEffect(() => {
+    try {
+      const currenciesStr = localStorage.getItem('supportedCurrencies');
+      if (currenciesStr) {
+        const allCurrencies = JSON.parse(currenciesStr);
+        // Filter only active currencies
+        const active = allCurrencies
+          .filter((c: { isActive: boolean }) => c.isActive)
+          .map((c: { code: string; name: string }) => ({
+            code: c.code,
+            name: c.name
+          }));
+        
+        if (active.length > 0) {
+          setActiveCurrencies(active);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!name) {
-      toast({
-        title: "خطأ في البيانات",
-        description: "يرجى إدخال اسم طريقة الإيداع",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       setIsLoading(true);
       
+      if (!formData.name.trim()) {
+        toast({
+          title: "اسم طريقة الإيداع مطلوب",
+          description: "الرجاء إدخال اسم طريقة الإيداع",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       await addDepositMethod({
-        name,
-        description,
-        isActive,
-        acceptedCurrency,
-        requiresImage,
-        requiresTransactionId,
+        name: formData.name,
+        description: formData.description,
+        acceptedCurrency: formData.acceptedCurrency as Currency,
+        isActive: formData.isActive,
+        requiresImage: formData.requiresImage,
+        requiresTransactionId: formData.requiresTransactionId
       });
       
       // Reset form
-      setName('');
-      setDescription('');
-      setAcceptedCurrency('usdt');
-      setRequiresImage(true);
-      setRequiresTransactionId(true);
+      setFormData({
+        name: '',
+        description: '',
+        acceptedCurrency: 'usdt',
+        isActive: true,
+        requiresImage: true,
+        requiresTransactionId: false
+      });
       
-      if (refreshMethods) {
-        refreshMethods();
-      }
+      // Refresh methods list
+      refreshMethods();
     } catch (error) {
-      console.error("Error adding deposit method:", error);
       toast({
         title: "حدث خطأ",
-        description: "لم نتمكن من إضافة طريقة الإيداع",
+        description: "فشل إضافة طريقة الإيداع",
         variant: "destructive",
       });
     } finally {
@@ -71,89 +101,78 @@ const AdminDepositMethod = ({ refreshMethods }: AdminDepositMethodProps) => {
   };
 
   return (
-    <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
-      <CardHeader>
-        <CardTitle className="text-lg font-medium text-white">إضافة طريقة إيداع جديدة</CardTitle>
-        <CardDescription className="text-muted-foreground">
-          أضف طريقة إيداع جديدة ليستخدمها المستخدمين
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">اسم طريقة الإيداع</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="مثال: بنك سوريا الدولي"
-              required
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">وصف الطريقة (اختياري)</Label>
-            <Input
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="تعليمات وتفاصيل للمستخدم"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label>العملة المقبولة</Label>
-            <RadioGroup 
-              value={acceptedCurrency} 
-              onValueChange={(value) => setAcceptedCurrency(value as Currency)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="usdt" id="usdt-currency" />
-                <Label htmlFor="usdt-currency" className="font-medium">USDT</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="syp" id="syp-currency" />
-                <Label htmlFor="syp-currency" className="font-medium">ليرة سورية</Label>
-              </div>
-            </RadioGroup>
-          </div>
-          
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="requires-image"
-              checked={requiresImage}
-              onCheckedChange={setRequiresImage}
-            />
-            <Label htmlFor="requires-image" className="flex-grow">طلب صورة إثبات</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="requires-transaction"
-              checked={requiresTransactionId}
-              onCheckedChange={setRequiresTransactionId}
-            />
-            <Label htmlFor="requires-transaction" className="flex-grow">طلب رقم العملية</Label>
-          </div>
-          
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="is-active"
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
-            <Label htmlFor="is-active" className="flex-grow">مفعّلة</Label>
-          </div>
-          
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "جاري الإضافة..." : "إضافة طريقة الإيداع"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+    <CardSection title="إضافة طريقة إيداع جديدة">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">اسم طريقة الإيداع</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="مثال: بنك X"
+            className="bg-[#242C3E] border-[#2A3348] text-white"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="description">الوصف (اختياري)</Label>
+          <Input
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="تفاصيل إضافية عن طريقة الإيداع"
+            className="bg-[#242C3E] border-[#2A3348] text-white"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="acceptedCurrency">العملة المقبولة</Label>
+          <select
+            id="acceptedCurrency"
+            value={formData.acceptedCurrency}
+            onChange={(e) => setFormData({ ...formData, acceptedCurrency: e.target.value })}
+            className="w-full p-2 rounded bg-[#242C3E] border border-[#2A3348] text-white"
+          >
+            {activeCurrencies.map((currency) => (
+              <option key={currency.code} value={currency.code}>
+                {currency.name} ({currency.code.toUpperCase()})
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <Switch
+            id="isActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+          />
+          <Label htmlFor="isActive">تفعيل طريقة الإيداع</Label>
+        </div>
+        
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <Switch
+            id="requiresImage"
+            checked={formData.requiresImage}
+            onCheckedChange={(checked) => setFormData({ ...formData, requiresImage: checked })}
+          />
+          <Label htmlFor="requiresImage">تتطلب صورة إثبات</Label>
+        </div>
+        
+        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+          <Switch
+            id="requiresTransactionId"
+            checked={formData.requiresTransactionId}
+            onCheckedChange={(checked) => setFormData({ ...formData, requiresTransactionId: checked })}
+          />
+          <Label htmlFor="requiresTransactionId">تتطلب رقم العملية</Label>
+        </div>
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "جارٍ الإضافة..." : "إضافة طريقة إيداع جديدة"}
+        </Button>
+      </form>
+    </CardSection>
   );
 };
 

@@ -9,6 +9,7 @@ import { TransactionProvider } from "./context/TransactionContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import AdminSettings from "./pages/AdminSettings";
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/home" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-2fa" element={<TwoFactorVerify />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />

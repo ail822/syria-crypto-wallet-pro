@@ -1,154 +1,124 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
+import { Facebook, YoutubeIcon, MessageCircle } from 'lucide-react';
 import { usePlatform } from '@/context/PlatformContext';
-import { Facebook, Youtube, MessageCircle } from 'lucide-react';
 import CardSection from '@/components/ui/card-section';
+import { sendTelegramMessage } from '@/utils/telegramBot';
 
 const SocialLinksSettings = () => {
-  const { socialLinks, setSocialLinks, platformName, setPlatformName, supportEmail, setSupportEmail } = usePlatform();
-  const [isLoading, setIsLoading] = useState(false);
+  const { socialLinks, updateSocialLinks } = usePlatform();
   const [links, setLinks] = useState({
-    facebook: socialLinks.facebook || '',
-    youtube: socialLinks.youtube || '',
-    telegram: socialLinks.telegram || '',
-    whatsapp: socialLinks.whatsapp || '',
+    facebook: '',
+    youtube: '',
+    telegram: '',
+    whatsapp: ''
   });
-  const [name, setName] = useState(platformName);
-  const [email, setEmail] = useState(supportEmail);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (socialLinks) {
+      setLinks({
+        facebook: socialLinks.facebook || '',
+        youtube: socialLinks.youtube || '',
+        telegram: socialLinks.telegram || '',
+        whatsapp: socialLinks.whatsapp || ''
+      });
+    }
+  }, [socialLinks]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       setIsLoading(true);
       
-      // Update platform name and support email
-      setPlatformName(name);
-      setSupportEmail(email);
+      updateSocialLinks(links);
       
-      // Update social links
-      setSocialLinks({
-        facebook: links.facebook || undefined,
-        youtube: links.youtube || undefined, 
-        telegram: links.telegram || undefined,
-        whatsapp: links.whatsapp || undefined,
-      });
+      // Send backup to Telegram
+      await sendTelegramMessage(`🔗 *تحديث روابط التواصل الاجتماعي*\n\n` +
+        `📘 فيسبوك: ${links.facebook || 'لا يوجد'}\n` +
+        `📺 يوتيوب: ${links.youtube || 'لا يوجد'}\n` +
+        `📱 تلغرام: ${links.telegram || 'لا يوجد'}\n` +
+        `📞 واتساب: ${links.whatsapp || 'لا يوجد'}\n\n` +
+        `⏱️ وقت التحديث: ${new Date().toLocaleString('ar-SA')}`
+      );
       
-      toast({ title: "تم حفظ الإعدادات بنجاح" });
+      toast({ title: "تم تحديث روابط التواصل الاجتماعي بنجاح" });
     } catch (error) {
       toast({
-        title: "فشل حفظ الإعدادات",
-        description: "حدث خطأ أثناء حفظ الإعدادات",
+        title: "فشل تحديث الروابط",
+        description: "حدث خطأ أثناء تحديث روابط التواصل الاجتماعي",
         variant: "destructive",
       });
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <CardSection title="إعدادات الموقع">
+    <CardSection title="إعدادات روابط التواصل الاجتماعي">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="platformName">اسم المنصة</Label>
-          <Input
-            id="platformName"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="أدخل اسم المنصة"
-            required
-            className="bg-[#242C3E] border-[#2A3348] text-white"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="supportEmail">البريد الإلكتروني للدعم</Label>
-          <Input
-            id="supportEmail"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="أدخل البريد الإلكتروني للدعم"
-            required
-            className="bg-[#242C3E] border-[#2A3348] text-white"
-          />
-        </div>
-        
-        <div className="pt-4 border-t border-[#2A3348]">
-          <h3 className="text-lg font-medium mb-4">روابط التواصل الاجتماعي</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="facebook" className="flex items-center gap-2">
+              <Facebook className="h-4 w-4" /> فيسبوك
+            </Label>
+            <Input
+              id="facebook"
+              value={links.facebook}
+              onChange={(e) => setLinks({...links, facebook: e.target.value})}
+              placeholder="https://facebook.com/yourpage"
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+          </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <Facebook className="h-5 w-5 text-blue-500" />
-              <div className="flex-1">
-                <Label htmlFor="facebookLink">فيسبوك</Label>
-                <Input
-                  id="facebookLink"
-                  value={links.facebook}
-                  onChange={(e) => setLinks({...links, facebook: e.target.value})}
-                  placeholder="أدخل رابط صفحة الفيسبوك"
-                  className="bg-[#242C3E] border-[#2A3348] text-white mt-1"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <Youtube className="h-5 w-5 text-red-500" />
-              <div className="flex-1">
-                <Label htmlFor="youtubeLink">يوتيوب</Label>
-                <Input
-                  id="youtubeLink"
-                  value={links.youtube}
-                  onChange={(e) => setLinks({...links, youtube: e.target.value})}
-                  placeholder="أدخل رابط قناة اليوتيوب"
-                  className="bg-[#242C3E] border-[#2A3348] text-white mt-1"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <MessageCircle className="h-5 w-5 text-blue-400" />
-              <div className="flex-1">
-                <Label htmlFor="telegramLink">تلغرام</Label>
-                <Input
-                  id="telegramLink"
-                  value={links.telegram}
-                  onChange={(e) => setLinks({...links, telegram: e.target.value})}
-                  placeholder="أدخل رابط قناة التلغرام"
-                  className="bg-[#242C3E] border-[#2A3348] text-white mt-1"
-                />
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-              <MessageCircle className="h-5 w-5 text-green-500" />
-              <div className="flex-1">
-                <Label htmlFor="whatsappLink">واتساب</Label>
-                <Input
-                  id="whatsappLink"
-                  value={links.whatsapp}
-                  onChange={(e) => setLinks({...links, whatsapp: e.target.value})}
-                  placeholder="أدخل رابط واتساب"
-                  className="bg-[#242C3E] border-[#2A3348] text-white mt-1"
-                />
-              </div>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="youtube" className="flex items-center gap-2">
+              <YoutubeIcon className="h-4 w-4" /> يوتيوب
+            </Label>
+            <Input
+              id="youtube"
+              value={links.youtube}
+              onChange={(e) => setLinks({...links, youtube: e.target.value})}
+              placeholder="https://youtube.com/yourchannel"
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="telegram" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" /> تلغرام
+            </Label>
+            <Input
+              id="telegram"
+              value={links.telegram}
+              onChange={(e) => setLinks({...links, telegram: e.target.value})}
+              placeholder="https://t.me/yourusername"
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp" className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" /> واتساب
+            </Label>
+            <Input
+              id="whatsapp"
+              value={links.whatsapp}
+              onChange={(e) => setLinks({...links, whatsapp: e.target.value})}
+              placeholder="https://wa.me/1234567890"
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
           </div>
         </div>
         
-        <div className="pt-2">
-          <p className="text-sm text-muted-foreground mb-4">
-            سيتم عرض أيقونات مواقع التواصل الاجتماعي في تذييل الموقع (Footer) إذا تم إدخال روابطها. الروابط الفارغة لن تظهر.
-          </p>
-          
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
-          </Button>
-        </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "جارٍ التحديث..." : "حفظ الروابط"}
+        </Button>
       </form>
     </CardSection>
   );
