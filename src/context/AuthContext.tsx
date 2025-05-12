@@ -38,7 +38,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    
+    // Initialize admin account if it doesn't exist
+    initializeAdminAccount();
   }, []);
+  
+  // Function to initialize admin account
+  const initializeAdminAccount = () => {
+    const registeredUsersJSON = localStorage.getItem('registeredUsers');
+    let registeredUsers: RegisteredUser[] = [];
+    
+    if (registeredUsersJSON) {
+      registeredUsers = JSON.parse(registeredUsersJSON);
+      
+      // Check if admin account exists
+      const adminExists = registeredUsers.some(
+        (u) => u.email.toLowerCase() === 'barodimhamad@gmail.com'
+      );
+      
+      if (!adminExists) {
+        // Create admin account
+        const adminUser: RegisteredUser = {
+          id: 'admin-' + Math.random().toString(36).substring(2, 11),
+          email: 'barodimhamad@gmail.com',
+          name: 'Admin User',
+          isAdmin: true,
+          password: 'aaazx@##$',
+          balances: {
+            usdt: 1000,
+            syp: 500000
+          }
+        };
+        
+        registeredUsers.push(adminUser);
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      }
+    } else {
+      // No users registered yet, create admin account
+      const adminUser: RegisteredUser = {
+        id: 'admin-' + Math.random().toString(36).substring(2, 11),
+        email: 'barodimhamad@gmail.com',
+        name: 'Admin User',
+        isAdmin: true,
+        password: 'aaazx@##$',
+        balances: {
+          usdt: 1000,
+          syp: 500000
+        }
+      };
+      
+      registeredUsers.push(adminUser);
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+    }
+  };
   
   const login = async (email: string, password: string) => {
     // Look for the user in localStorage

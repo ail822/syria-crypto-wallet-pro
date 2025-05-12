@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-type Theme = "dark" | "light";
+type Theme = "dark" | "light" | "blue" | "green" | "purple";
 
 interface ThemeContextType {
   theme: Theme;
@@ -24,17 +24,29 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("theme", theme);
     const root = window.document.documentElement;
     
-    // Remove both classes first
-    root.classList.remove("dark", "light");
+    // Remove all theme classes first
+    root.classList.remove("dark", "light", "theme-blue", "theme-green", "theme-purple");
     
-    // Add the appropriate class
-    root.classList.add(theme);
+    // Add the appropriate class based on theme
+    if (theme === "dark" || theme === "light") {
+      root.classList.add(theme);
+    } else {
+      // For custom themes, add both dark mode and the theme-specific class
+      root.classList.add("dark");
+      root.classList.add(`theme-${theme}`);
+    }
     
     // Update the background color based on theme
-    if (theme === "dark") {
-      root.style.backgroundColor = "#121212";
-    } else {
+    if (theme === "light") {
       root.style.backgroundColor = "#ffffff";
+    } else if (theme === "dark") {
+      root.style.backgroundColor = "#121212";
+    } else if (theme === "blue") {
+      root.style.backgroundColor = "#0c1e47";
+    } else if (theme === "green") {
+      root.style.backgroundColor = "#0c2a1c";
+    } else if (theme === "purple") {
+      root.style.backgroundColor = "#240c47";
     }
   }, [theme]);
 

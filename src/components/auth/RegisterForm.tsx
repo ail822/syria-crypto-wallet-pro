@@ -39,13 +39,13 @@ const RegisterForm = () => {
     
     try {
       setIsLoading(true);
-      await register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        telegramId: formData.telegramId || undefined,
-        phoneNumber: formData.phoneNumber || undefined,
-      });
+      await register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.phoneNumber || undefined,
+        formData.telegramId || undefined
+      );
       toast({ title: "تم إنشاء الحساب بنجاح" });
       navigate('/');
     } catch (error) {

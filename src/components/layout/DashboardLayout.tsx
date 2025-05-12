@@ -16,7 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePlatform } from '@/context/PlatformContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { useTheme } from 'next-themes';
+import { useTheme } from '@/context/ThemeContext';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -65,6 +65,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     },
   ];
 
+  // Available themes with colors
+  const themes = [
+    { name: 'light', label: 'فاتح', icon: Sun, color: '#FFFFFF' },
+    { name: 'dark', label: 'داكن', icon: Moon, color: '#121212' },
+    { name: 'blue', label: 'أزرق', color: '#1E3A8A' },
+    { name: 'green', label: 'أخضر', color: '#166534' },
+    { name: 'purple', label: 'بنفسجي', color: '#581C87' }
+  ];
+
   return (
     <div className={cn("flex min-h-screen", theme === 'light' ? 'bg-gray-100' : 'gradient-bg')}>
       {/* Sidebar */}
@@ -81,9 +90,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         
         <div className="flex flex-col items-center mb-6 mt-2">
           <Avatar className={cn("h-16 w-16 mb-3 border-2", theme === 'light' ? "border-blue-500" : "border-primary")}>
-            <AvatarImage src={user?.profileImage} />
+            <AvatarImage src="" />
             <AvatarFallback className={cn(theme === 'light' ? "bg-blue-100 text-blue-800" : "bg-primary/20 text-white")}>
-              {user?.name.substring(0, 2)}
+              {user?.name?.substring(0, 2) || ""}
             </AvatarFallback>
           </Avatar>
           <h2 className={cn("text-lg font-medium", theme === 'light' ? "text-gray-800" : "text-white")}>
@@ -122,28 +131,38 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         </nav>
         
         <div className="flex flex-col space-y-3 mt-auto">
-          <Button 
-            variant="outline" 
-            className={cn(
-              "flex items-center justify-center",
-              theme === 'light' 
-                ? "border-gray-200 text-gray-600 hover:bg-gray-100" 
-                : "border-[#2A3348] text-muted-foreground hover:text-white hover:bg-primary/20"
-            )}
-            onClick={toggleTheme}
-          >
-            {theme === 'light' ? (
-              <>
-                <Moon className="mr-2 h-4 w-4" />
-                الوضع الداكن
-              </>
-            ) : (
-              <>
-                <Sun className="mr-2 h-4 w-4" />
-                الوضع الفاتح
-              </>
-            )}
-          </Button>
+          {/* Enhanced theme selector */}
+          <div className={cn(
+            "p-3 rounded-lg border",
+            theme === 'light' ? "border-gray-200 bg-white" : "border-[#2A3348] bg-[#1A1E2C]"
+          )}>
+            <div className="flex justify-between items-center mb-2">
+              <span className={cn(
+                "text-sm font-medium",
+                theme === 'light' ? "text-gray-700" : "text-gray-200"
+              )}>
+                المظهر
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {themes.map((t) => (
+                <button
+                  key={t.name}
+                  onClick={() => setTheme(t.name as "dark" | "light")}
+                  className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                    theme === t.name ? "ring-2 ring-primary ring-offset-2" : ""
+                  )}
+                  style={{ backgroundColor: t.color }}
+                  title={t.label}
+                >
+                  {theme === t.name && (
+                    <span className="text-white text-xs">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
           
           <Button 
             variant="outline" 
@@ -189,16 +208,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 <span className="text-xs mt-1">{item.label}</span>
               </Link>
             ))}
+            
+            {/* Theme Menu Button */}
             <button
               onClick={toggleTheme}
               className={cn(
-                "flex flex-col items-center justify-center px-3 py-2",
+                "flex flex-col items-center justify-center px-3 py-2 relative",
                 theme === 'light' ? "text-gray-600" : "text-[#B4B7C3]"
               )}
             >
               {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
               <span className="text-xs mt-1">المظهر</span>
             </button>
+            
+            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className={cn(

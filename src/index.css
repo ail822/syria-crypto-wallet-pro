@@ -70,6 +70,75 @@
     --input: 220 13% 86%;
     --ring: 221 83% 53%;
   }
+
+  /* Blue Theme */
+  .theme-blue {
+    --background: 220 65% 17%;
+    --foreground: 0 0% 95%;
+    --card: 220 70% 13%;
+    --card-foreground: 0 0% 95%;
+    --popover: 220 70% 13%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 210 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 60% 22%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 50% 22%;
+    --muted-foreground: 220 20% 70%;
+    --accent: 220 60% 22%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 50% 25%;
+    --input: 220 50% 25%;
+    --ring: 210 100% 40%;
+  }
+
+  /* Green Theme */
+  .theme-green {
+    --background: 150 50% 12%;
+    --foreground: 0 0% 95%;
+    --card: 150 55% 8%;
+    --card-foreground: 0 0% 95%;
+    --popover: 150 55% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 150 80% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 40% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 150 30% 20%;
+    --muted-foreground: 150 15% 65%;
+    --accent: 150 40% 20%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 40% 20%;
+    --input: 150 40% 20%;
+    --ring: 150 80% 35%;
+  }
+
+  /* Purple Theme */
+  .theme-purple {
+    --background: 270 50% 15%;
+    --foreground: 0 0% 95%;
+    --card: 270 55% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 270 55% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 270 80% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 40% 25%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 270 30% 25%;
+    --muted-foreground: 270 15% 70%;
+    --accent: 270 40% 25%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 40% 25%;
+    --input: 270 40% 25%;
+    --ring: 270 80% 50%;
+  }
 }
 
 @layer base {
@@ -92,6 +161,24 @@
   }
   to {
     opacity: 1;
+  }
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+  background-size: 200% 200%;
+  animation: gradientAnimation 15s ease infinite;
+}
+
+@keyframes gradientAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 

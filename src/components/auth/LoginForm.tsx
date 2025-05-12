@@ -6,12 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { Sun, Moon } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,13 +22,13 @@ const LoginForm = () => {
     
     try {
       setIsLoading(true);
-      const { userId, requires2FA } = await login(email, password);
+      const result = await login(email, password);
       
-      if (requires2FA) {
+      if (result.requiresTwoFactor) {
         // Redirect to 2FA verification page
         navigate('/verify-2fa', {
           state: {
-            userId,
+            userId: result.userId,
             redirectTo: '/'
           }
         });
@@ -83,6 +86,25 @@ const LoginForm = () => {
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
       </Button>
+      
+      <div className="flex justify-center space-x-4">
+        <button
+          type="button"
+          onClick={() => setTheme('dark')}
+          className={`p-2 rounded-md ${theme === 'dark' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+          aria-label="تفعيل الوضع الداكن"
+        >
+          <Moon className="h-5 w-5" />
+        </button>
+        <button
+          type="button" 
+          onClick={() => setTheme('light')}
+          className={`p-2 rounded-md ${theme === 'light' ? 'bg-primary/20 text-primary' : 'text-muted-foreground'}`}
+          aria-label="تفعيل الوضع الفاتح"
+        >
+          <Sun className="h-5 w-5" />
+        </button>
+      </div>
       
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
