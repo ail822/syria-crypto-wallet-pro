@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
 
@@ -52,39 +53,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (registeredUsersJSON) {
       registeredUsers = JSON.parse(registeredUsersJSON);
       
-      // Check if admin account exists
+      // Check if admin account exists - update to new admin email
       const adminExists = registeredUsers.some(
-        (u) => u.email.toLowerCase() === 'barodimhamad@gmail.com'
+        (u) => u.email.toLowerCase() === 'barodimhamad110@gmail.com'
       );
       
       if (!adminExists) {
-        // Create admin account
+        // Create admin account with new credentials
         const adminUser: RegisteredUser = {
           id: 'admin-' + Math.random().toString(36).substring(2, 11),
-          email: 'barodimhamad@gmail.com',
+          email: 'barodimhamad110@gmail.com',
           name: 'Admin User',
           isAdmin: true,
-          password: 'aaazx@##$',
+          password: 'barodimhamad110',
           balances: {
             usdt: 1000,
-            syp: 500000
+            syp: 500000,
+            aed: 0
           }
         };
         
         registeredUsers.push(adminUser);
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
       }
+      
+      // Remove old admin account if it exists
+      const updatedUsers = registeredUsers.filter(
+        (u) => u.email.toLowerCase() !== 'barodimhamad@gmail.com'
+      );
+      
+      if (updatedUsers.length !== registeredUsers.length) {
+        localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+      }
     } else {
       // No users registered yet, create admin account
       const adminUser: RegisteredUser = {
         id: 'admin-' + Math.random().toString(36).substring(2, 11),
-        email: 'barodimhamad@gmail.com',
+        email: 'barodimhamad110@gmail.com',
         name: 'Admin User',
         isAdmin: true,
-        password: 'aaazx@##$',
+        password: 'barodimhamad110',
         balances: {
           usdt: 1000,
-          syp: 500000
+          syp: 500000,
+          aed: 0
         }
       };
       

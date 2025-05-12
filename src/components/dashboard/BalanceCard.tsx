@@ -16,6 +16,32 @@ const BalanceCard = () => {
     return `آخر تحديث ${formatDistanceToNow(lastRefreshed, { addSuffix: true, locale: ar })}`;
   };
 
+  const getCurrencyColor = (currency: string): string => {
+    switch (currency.toLowerCase()) {
+      case 'usdt':
+        return 'bg-blue-600';
+      case 'syp':
+        return 'bg-emerald-600';
+      case 'aed':
+        return 'bg-purple-600';
+      default:
+        return 'bg-slate-600';
+    }
+  };
+
+  const getCurrencySymbol = (currency: string): string => {
+    switch (currency.toLowerCase()) {
+      case 'syp':
+        return 'ل.س';
+      case 'usdt':
+        return '$';
+      case 'aed':
+        return 'AED';
+      default:
+        return currency.toUpperCase();
+    }
+  };
+
   return (
     <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -32,15 +58,22 @@ const BalanceCard = () => {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {Object.entries(balances).map(([currency, balance]) => (
             <div 
               key={currency}
-              className="bg-[#242C3E] rounded-lg p-4 border border-[#2A3348]"
+              className={`rounded-lg p-4 ${getCurrencyColor(currency)} text-white`}
             >
-              <p className="text-sm text-muted-foreground mb-1">{getCurrencyName(currency)}</p>
-              <p className="text-2xl font-bold">
-                {formatCurrency(balance, currency)}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center justify-center bg-white/20 rounded-full h-9 w-9 mb-2">
+                  <span className="font-bold text-white">{currency.toUpperCase()}</span>
+                </div>
+                <div className="text-xs text-right">
+                  <span className="block text-white/70">رصيد {currency.toUpperCase()}</span>
+                </div>
+              </div>
+              <p className="text-xl font-bold text-white mt-2">
+                {formatCurrency(balance, currency)} {getCurrencySymbol(currency)}
               </p>
             </div>
           ))}
@@ -55,24 +88,6 @@ const BalanceCard = () => {
 };
 
 // Helper functions
-const getCurrencyName = (code: string): string => {
-  switch (code.toLowerCase()) {
-    case 'usdt':
-      return 'Tether USD';
-    case 'syp':
-      return 'الليرة السورية';
-    default:
-      // Try to load currency name from supportedCurrencies
-      try {
-        const supportedCurrencies = JSON.parse(localStorage.getItem('supportedCurrencies') || '[]');
-        const currency = supportedCurrencies.find((c: any) => c.code.toLowerCase() === code.toLowerCase());
-        return currency?.name || code.toUpperCase();
-      } catch (e) {
-        return code.toUpperCase();
-      }
-  }
-};
-
 const formatCurrency = (amount: number, code: string): string => {
   const formatter = new Intl.NumberFormat('ar-SA', {
     style: 'decimal',
@@ -80,7 +95,7 @@ const formatCurrency = (amount: number, code: string): string => {
     maximumFractionDigits: code.toLowerCase() === 'usdt' ? 2 : 0,
   });
   
-  return `${formatter.format(amount)} ${code.toUpperCase()}`;
+  return formatter.format(amount);
 };
 
 export default BalanceCard;

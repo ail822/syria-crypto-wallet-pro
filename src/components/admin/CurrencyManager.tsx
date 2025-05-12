@@ -57,6 +57,14 @@ const CurrencyManager = () => {
             isActive: true,
             minDeposit: exchangeRate.min_deposit_syp,
             minWithdrawal: exchangeRate.min_withdrawal_syp
+          },
+          { 
+            code: 'aed', 
+            name: 'درهم إماراتي',
+            exchangeRate: 3.67, // Standard USD to AED exchange rate
+            isActive: true,
+            minDeposit: 10,
+            minWithdrawal: 10
           }
         ];
         setCurrencies(defaultCurrencies);
