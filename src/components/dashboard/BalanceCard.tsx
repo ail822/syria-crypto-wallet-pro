@@ -62,19 +62,24 @@ const BalanceCard = () => {
           {Object.entries(balances).map(([currency, balance]) => (
             <div 
               key={currency}
-              className={`rounded-lg p-4 ${getCurrencyColor(currency)} text-white`}
+              className={`relative overflow-hidden rounded-lg shadow-md ${getCurrencyColor(currency)}`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center justify-center bg-white/20 rounded-full h-9 w-9 mb-2">
-                  <span className="font-bold text-white">{currency.toUpperCase()}</span>
+              <div className="absolute top-0 right-0 h-16 w-16 -mr-6 -mt-6 bg-white/10 rounded-full"></div>
+              <div className="absolute bottom-0 left-0 h-16 w-16 -ml-6 -mb-6 bg-white/10 rounded-full"></div>
+              
+              <div className="p-4 relative z-10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-center bg-white/20 rounded-full h-9 w-9">
+                    <span className="font-bold text-white">{currency.toUpperCase()[0]}</span>
+                  </div>
+                  <div className="text-xs text-right">
+                    <span className="block text-white/70">رصيد {currency.toUpperCase()}</span>
+                  </div>
                 </div>
-                <div className="text-xs text-right">
-                  <span className="block text-white/70">رصيد {currency.toUpperCase()}</span>
-                </div>
+                <p className="text-2xl font-bold text-white mt-2">
+                  {formatCurrency(balance, currency)} {getCurrencySymbol(currency)}
+                </p>
               </div>
-              <p className="text-xl font-bold text-white mt-2">
-                {formatCurrency(balance, currency)} {getCurrencySymbol(currency)}
-              </p>
             </div>
           ))}
         </div>
