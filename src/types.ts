@@ -7,6 +7,7 @@ export interface User {
   phoneNumber?: string;
   telegramId?: string;
   isAdmin: boolean;
+  profileImage?: string;
   balances: {
     [key: string]: number; // Dynamic currencies
   };

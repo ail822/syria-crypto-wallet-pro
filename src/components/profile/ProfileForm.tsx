@@ -16,7 +16,6 @@ const ProfileForm = () => {
     email: user?.email || '',
     telegramId: user?.telegramId || '',
     phoneNumber: user?.phoneNumber || '',
-    profileImage: user?.profileImage || '',
   });
   
   const [previewImage, setPreviewImage] = useState<string | null>(user?.profileImage || null);

@@ -10,17 +10,17 @@ import CardSection from '@/components/ui/card-section';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useTransaction } from '@/context/TransactionContext';
 import { sendTelegramMessage } from '@/utils/telegramBot';
-import { Currency } from '@/types';
+import { CurrencyItem } from '@/types';
 
 const CurrencyManager = () => {
   const { exchangeRate } = useTransaction();
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  const [currencies, setCurrencies] = useState<CurrencyItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currencyToDelete, setCurrencyToDelete] = useState<string | null>(null);
   
   // New currency form state
-  const [newCurrency, setNewCurrency] = useState({
+  const [newCurrency, setNewCurrency] = useState<CurrencyItem>({
     code: '',
     name: '',
     exchangeRate: 1,
@@ -41,7 +41,7 @@ const CurrencyManager = () => {
         setCurrencies(JSON.parse(savedCurrencies));
       } else {
         // Set default currencies if none exist
-        const defaultCurrencies = [
+        const defaultCurrencies: CurrencyItem[] = [
           { 
             code: 'usdt', 
             name: 'Tether USD',

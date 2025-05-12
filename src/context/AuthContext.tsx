@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '@/types';
 
@@ -11,6 +10,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, phoneNumber?: string, telegramId?: string) => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  updatePassword: (userId: string, currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 interface RegisteredUser extends User {
@@ -26,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   updateUser: () => {},
   refreshUser: async () => {},
+  updatePassword: async () => false,
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -179,6 +180,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
   };
   
+  const updatePassword = async (userId: string, currentPassword: string, newPassword: string): Promise<boolean> => {
+    try {
+      // Get registered users from localStorage
+      const registeredUsersJSON = localStorage.getItem('registeredUsers');
+      if (!registeredUsersJSON) return false;
+      
+      const registeredUsers: RegisteredUser[] = JSON.parse(registeredUsersJSON);
+      
+      // Find the user and verify their current password
+      const userIndex = registeredUsers.findIndex(u => u.id === userId);
+      
+      if (userIndex === -1 || registeredUsers[userIndex].password !== currentPassword) {
+        return false;
+      }
+      
+      // Update the password
+      registeredUsers[userIndex].password = newPassword;
+      
+      // Save back to localStorage
+      localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return false;
+    }
+  };
+  
   const updateUser = (updates: Partial<User>) => {
     if (!user) return;
     
@@ -233,7 +262,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         register,
         updateUser,
-        refreshUser
+        refreshUser,
+        updatePassword
       }}
     >
       {children}
