@@ -64,11 +64,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-bg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-purple-700">
       <div className="w-full max-w-md p-6 animate-slide-in">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">{platformName}</h1>
-          <p className="text-muted-foreground">تسجيل الدخول إلى حسابك</p>
+          <p className="text-gray-200">تسجيل الدخول إلى حسابك</p>
         </div>
         
         <div className="bg-[#1A1E2C] rounded-xl border border-[#2A3348] p-6 shadow-lg">
@@ -92,7 +92,7 @@ const Login = () => {
                 <Label htmlFor="password">كلمة المرور</Label>
                 <Link 
                   to="/forgot-password"
-                  className="text-xs text-primary hover:underline"
+                  className="text-xs text-purple-400 hover:underline"
                 >
                   نسيت كلمة المرور؟
                 </Link>
@@ -109,14 +109,14 @@ const Login = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
               {isLoading ? "جارٍ تسجيل الدخول..." : "تسجيل الدخول"}
             </Button>
           </form>
           
           <div className="mt-6 text-center text-sm">
             <span className="text-muted-foreground">ليس لديك حساب؟</span>{' '}
-            <Link to="/register" className="text-primary hover:underline">
+            <Link to="/register" className="text-purple-400 hover:underline">
               إنشاء حساب جديد
             </Link>
           </div>

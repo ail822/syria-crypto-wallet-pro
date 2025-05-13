@@ -98,6 +98,11 @@ export interface SocialLinks {
   youtube?: string;
   telegram?: string;
   whatsapp?: string;
+  instagram?: string;
+  twitter?: string;
+  email?: string;
+  phone?: string;
+  termsAndConditions?: string;
 }
 
 export interface BackupData {

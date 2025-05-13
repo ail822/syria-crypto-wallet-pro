@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Gamepad2, Plus, Trash } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Gamepad2, Plus, Trash, Upload, Link } from 'lucide-react';
 
 interface Game {
   id: string;
@@ -36,6 +37,10 @@ const GamesManager = () => {
   });
   
   const [isAdding, setIsAdding] = useState(false);
+  const [imageUploadMethod, setImageUploadMethod] = useState<'file' | 'url'>('file');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
 
   // Load games from localStorage
   useEffect(() => {
@@ -61,7 +66,7 @@ const GamesManager = () => {
     localStorage.setItem('games', JSON.stringify(games));
   }, [games]);
 
-  const handleInputChange = (key: keyof Omit<Game, 'id' | 'createdAt' | 'isActive'>, value: string | number) => {
+  const handleInputChange = (key: keyof Omit<Game, 'id' | 'createdAt' | 'isActive' | 'imageUrl'>, value: string | number) => {
     setNewGame({
       ...newGame,
       [key]: key === 'price' ? parseFloat(value as string) || 0 : value
@@ -77,6 +82,19 @@ const GamesManager = () => {
     });
   };
 
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const fileReader = new FileReader();
+      fileReader.onload = (e) => {
+        const result = e.target?.result as string;
+        setImagePreview(result);
+      };
+      fileReader.readAsDataURL(file);
+    }
+  };
+
   const handleAddGame = () => {
     if (!newGame.name || newGame.price <= 0) {
       toast({
@@ -87,13 +105,25 @@ const GamesManager = () => {
       return;
     }
 
+    let gameImageUrl = '';
+    
+    // الحصول على رابط الصورة حسب طريقة الاختيار
+    if (imageUploadMethod === 'file' && imagePreview) {
+      gameImageUrl = imagePreview;
+    } else if (imageUploadMethod === 'url' && imageUrl) {
+      gameImageUrl = imageUrl;
+    }
+
     const gameToAdd: Game = {
       ...newGame,
       id: Math.random().toString(36).substring(2, 11),
-      createdAt: new Date()
+      createdAt: new Date(),
+      imageUrl: gameImageUrl
     };
 
     setGames([...games, gameToAdd]);
+    
+    // إعادة تعيين النموذج
     setNewGame({
       name: '',
       accountIdLabel: 'معرف اللاعب',
@@ -101,6 +131,10 @@ const GamesManager = () => {
       currency: 'usdt',
       isActive: true,
     });
+    setImagePreview('');
+    setImageUrl('');
+    setImageFile(null);
+    setImageUploadMethod('file');
     setIsAdding(false);
 
     toast({
@@ -183,6 +217,60 @@ const GamesManager = () => {
               </div>
             </div>
             
+            {/* إضافة خيارات تحميل الصورة */}
+            <div className="mt-4">
+              <label className="text-sm text-muted-foreground block mb-2">صورة اللعبة (اختياري)</label>
+              
+              <Tabs value={imageUploadMethod} onValueChange={(v) => setImageUploadMethod(v as 'file' | 'url')} className="w-full">
+                <TabsList className="grid grid-cols-2 mb-4">
+                  <TabsTrigger value="file" className="flex items-center">
+                    <Upload className="w-4 h-4 mr-2" /> رفع صورة
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="flex items-center">
+                    <Link className="w-4 h-4 mr-2" /> رابط صورة
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="file" className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    className="bg-[#242C3E] border-[#2A3348]"
+                  />
+                  {imagePreview && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-2">معاينة الصورة:</p>
+                      <div className="relative w-20 h-20 rounded-md overflow-hidden border border-[#2A3348]">
+                        <img src={imagePreview} alt="Game preview" className="object-cover w-full h-full" />
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="url" className="space-y-2">
+                  <Input
+                    placeholder="https://example.com/game-image.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="bg-[#242C3E] border-[#2A3348]"
+                  />
+                  {imageUrl && (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-2">معاينة الصورة:</p>
+                      <div className="relative w-20 h-20 rounded-md overflow-hidden border border-[#2A3348]">
+                        <img src={imageUrl} alt="Game preview" className="object-cover w-full h-full" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Error';
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+            
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
@@ -212,7 +300,17 @@ const GamesManager = () => {
                 className="flex flex-wrap items-center justify-between p-4 border border-[#2A3348] bg-[#1E293B] rounded-md gap-4"
               >
                 <div className="flex items-center gap-3">
-                  <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                  {game.imageUrl ? (
+                    <div className="w-12 h-12 rounded overflow-hidden">
+                      <img src={game.imageUrl} alt={game.name} className="object-cover w-full h-full" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/48?text=Game';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                  )}
                   <div>
                     <h4 className="font-medium">{game.name}</h4>
                     <p className="text-sm text-muted-foreground">

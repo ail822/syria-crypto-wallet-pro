@@ -161,13 +161,13 @@ const RegisterForm = () => {
         />
       </div>
       
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
         {isLoading ? "جارٍ التسجيل..." : "إنشاء حساب"}
       </Button>
       
       <div className="mt-4 text-center text-sm">
         <span className="text-muted-foreground">لديك حساب بالفعل؟</span>{' '}
-        <Link to="/login" className="text-primary hover:underline">
+        <Link to="/login" className="text-purple-400 hover:underline">
           تسجيل الدخول
         </Link>
       </div>
@@ -184,11 +184,11 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-bg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-purple-700">
       <div className="w-full max-w-md p-6 animate-slide-in">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">{platformName}</h1>
-          <p className="text-muted-foreground">إنشاء حساب جديد</p>
+          <p className="text-gray-200">إنشاء حساب جديد</p>
         </div>
         
         <div className="bg-[#1A1E2C] rounded-xl border border-[#2A3348] p-6 shadow-lg">

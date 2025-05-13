@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
 import { MessageCircle } from 'lucide-react';
-import { sendTelegramMessage } from '@/utils/telegramBot';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -22,6 +21,7 @@ const ForgotPassword = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [botUsername, setBotUsername] = useState('');
+  const [telegramId, setTelegramId] = useState('');
   
   useEffect(() => {
     // Load telegram bot settings to get the username
@@ -65,13 +65,21 @@ const ForgotPassword = () => {
       
       setUserId(user.id);
       
+      // Check if user has telegramId
+      if (!user.telegramId) {
+        toast({
+          title: "لم يتم ربط حساب تلغرام",
+          description: "الرجاء التواصل مع المسؤول لتحديث معرف التلغرام الخاص بك",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setTelegramId(user.telegramId);
+      
       // Generate random 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setGeneratedCode(code);
-      
-      // Send code to admin via Telegram
-      const message = `🔑 *طلب استعادة كلمة المرور*\n\nرمز التحقق: \`${code}\`\nالبريد الإلكتروني: ${email}\nمعرف المستخدم: \`${user.id}\``;
-      await sendTelegramMessage(message);
       
       // Move to telegram verification step
       setStep('telegram');
@@ -182,11 +190,11 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-bg">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-purple-700">
       <div className="w-full max-w-md p-6 animate-slide-in">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">{platformName}</h1>
-          <p className="text-muted-foreground">استعادة كلمة المرور</p>
+          <p className="text-gray-200">استعادة كلمة المرور</p>
         </div>
         
         <div className="bg-[#1A1E2C] rounded-xl border border-[#2A3348] p-6 shadow-lg">
@@ -207,7 +215,7 @@ const ForgotPassword = () => {
               
               <Button 
                 type="submit" 
-                className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                className="w-full bg-purple-600 hover:bg-purple-700" 
                 disabled={isLoading}
               >
                 {isLoading ? "جارٍ البحث..." : "متابعة"}
@@ -216,7 +224,7 @@ const ForgotPassword = () => {
               <div className="text-center mt-4">
                 <Link 
                   to="/login" 
-                  className="text-sm text-[#1E88E5] hover:underline"
+                  className="text-sm text-purple-400 hover:underline"
                 >
                   العودة إلى تسجيل الدخول
                 </Link>
@@ -227,13 +235,30 @@ const ForgotPassword = () => {
           {step === 'telegram' && (
             <div className="space-y-6">
               <div className="flex justify-center mb-4">
-                <MessageCircle className="w-16 h-16 text-[#1E88E5]" />
+                <MessageCircle className="w-16 h-16 text-purple-500" />
               </div>
               
               <h2 className="text-xl font-semibold text-center">التحقق عبر تلغرام</h2>
               <p className="text-center text-sm text-muted-foreground mb-6">
-                تم إرسال رمز التحقق إلى المشرف عبر بوت التلغرام، يرجى الاتصال بالمشرف للحصول على الرمز
+                لإرسال رمز التحقق عبر تيليجرام، الرجاء إرسال الكلمة التالية إلى البوت:
               </p>
+              
+              <div className="p-4 bg-[#111827] rounded-lg text-center">
+                <code className="text-purple-400 text-lg font-mono">verify {generatedCode}</code>
+              </div>
+              
+              {botUsername && (
+                <div className="text-center mt-2">
+                  <a
+                    href={`https://t.me/${botUsername.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-purple-400 hover:text-purple-300"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1" /> {botUsername}
+                  </a>
+                </div>
+              )}
               
               <div className="space-y-2 mt-4">
                 <Label htmlFor="verification-code">رمز التحقق</Label>
@@ -246,14 +271,14 @@ const ForgotPassword = () => {
                   maxLength={6}
                 />
                 <p className="text-xs text-muted-foreground text-center">
-                  أدخل الرمز الذي أرسلناه للمشرف على تلغرام
+                  أدخل الرمز الذي تلقيته من بوت تلغرام
                 </p>
               </div>
               
               <div className="space-y-4 pt-2">
                 <Button 
                   onClick={handleVerifyCode} 
-                  className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                  className="w-full bg-purple-600 hover:bg-purple-700" 
                   disabled={isLoading || verificationCode.length !== 6}
                 >
                   {isLoading ? "جارٍ التحقق..." : "تحقق من الرمز"}
@@ -306,7 +331,7 @@ const ForgotPassword = () => {
               
               <Button 
                 onClick={handleResetPassword} 
-                className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                className="w-full bg-purple-600 hover:bg-purple-700" 
                 disabled={isLoading}
               >
                 {isLoading ? "جاري إعادة التعيين..." : "إعادة تعيين كلمة المرور"}
