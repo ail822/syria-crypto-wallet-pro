@@ -9,7 +9,8 @@ import {
   BarChart4,
   Settings,
   Sun,
-  Moon
+  Moon,
+  Gamepad2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { usePlatform } from '@/context/PlatformContext';
@@ -48,6 +49,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       icon: User,
       label: 'حسابي',
       path: '/profile',
+      adminOnly: false,
+    },
+    {
+      icon: Gamepad2,
+      label: 'شحن الألعاب',
+      path: '/games',
       adminOnly: false,
     },
     {

@@ -133,17 +133,19 @@ const AboutPage = () => {
         <section className="mb-12">
           <h2 className="text-2xl font-bold mb-4 border-r-4 border-[#1E88E5] pr-3">تابعنا على</h2>
           <div className="flex flex-wrap gap-4 justify-center">
-            {socialLinks.map((link, index) => (
-              <a 
-                key={index}
-                href={link.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="bg-[#1A1E2C] rounded-lg p-4 border border-[#2A3348] hover:bg-[#242C3E] transition"
-              >
-                <span className="sr-only">{link.name}</span>
-                <div className="h-8 w-8 text-[#1E88E5]" dangerouslySetInnerHTML={{ __html: link.icon }} />
-              </a>
+            {Object.entries(socialLinks).map(([key, value], index) => (
+              value && (
+                <a 
+                  key={index}
+                  href={value.toString()} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="bg-[#1A1E2C] rounded-lg p-4 border border-[#2A3348] hover:bg-[#242C3E] transition"
+                >
+                  <span className="sr-only">{key}</span>
+                  <div className="h-8 w-8 text-[#1E88E5]" />
+                </a>
+              )
             ))}
           </div>
         </section>

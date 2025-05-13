@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 interface SocialLinks {
+  [key: string]: string;
   facebook?: string;
   youtube?: string;
   telegram?: string;

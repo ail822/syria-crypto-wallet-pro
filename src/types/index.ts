@@ -80,3 +80,14 @@ export interface WithdrawalMethodType {
   feePercentage: number;
   createdAt: Date;
 }
+
+export interface Game {
+  id: string;
+  name: string;
+  accountIdLabel: string;
+  price: number;
+  currency: Currency;
+  isActive: boolean;
+  imageUrl?: string;
+  createdAt: Date;
+}

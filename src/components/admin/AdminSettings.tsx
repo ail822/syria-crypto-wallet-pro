@@ -8,8 +8,8 @@ const AdminSettings = () => {
   return (
     <div className="space-y-6">
       <ExchangeRateForm />
-      <SocialLinksSettings />
       <GamesManager />
+      <SocialLinksSettings />
     </div>
   );
 };
