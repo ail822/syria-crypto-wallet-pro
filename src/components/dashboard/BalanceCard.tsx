@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
@@ -19,10 +20,6 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ label, currency, icon }) => {
       maximumFractionDigits: 2,
     });
   };
-
-  if (currency !== 'usdt' && currency !== 'syp') {
-    return null;
-  }
 
   return (
     <Card className="bg-[#1A1E2C] border-[#2A3348] shadow-md">

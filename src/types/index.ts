@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -15,7 +16,7 @@ export type Currency = 'usdt' | 'syp' | string;
 
 export type Transaction = {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'conversion';
+  type: 'deposit' | 'withdrawal' | 'conversion' | 'game_recharge';
   amount: number;
   currency: Currency;
   targetCurrency?: Currency;
@@ -34,6 +35,9 @@ export type Transaction = {
     walletId?: string;
   };
   userId?: string;
+  gameId?: string;
+  gameName?: string;
+  accountId?: string;
 };
 
 export type WithdrawalMethod = 'province' | 'mtn' | 'syriatel' | 'c-wallet';

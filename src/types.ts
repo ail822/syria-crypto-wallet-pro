@@ -30,7 +30,7 @@ export interface CurrencyItem {
 }
 
 // Transaction related types
-export type TransactionType = 'deposit' | 'withdrawal' | 'conversion';
+export type TransactionType = 'deposit' | 'withdrawal' | 'conversion' | 'game_recharge';
 export type TransactionStatus = 'pending' | 'completed' | 'rejected';
 export type WithdrawalMethod = 'c-wallet' | 'province' | 'mtn' | 'syriatel';
 
@@ -62,6 +62,11 @@ export interface Transaction {
   // For conversion transactions
   targetCurrency?: Currency;
   targetAmount?: number;
+  
+  // For game recharge transactions
+  gameId?: string;
+  gameName?: string;
+  accountId?: string;
 }
 
 // Deposit method types

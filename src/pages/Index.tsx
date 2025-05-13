@@ -12,6 +12,7 @@ import CustomWithdrawalForm from '@/components/forms/CustomWithdrawalForm';
 import { useAuth } from '@/context/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Coins, DollarSign } from 'lucide-react';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
@@ -27,7 +28,11 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold mb-6">مرحباً, {user?.name}</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <BalanceCard />
+          <BalanceCard 
+            label="رصيد USDT" 
+            currency="usdt" 
+            icon={<Coins className="h-5 w-5 text-blue-400" />} 
+          />
           <ActivityChart />
         </div>
         

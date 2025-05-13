@@ -2,16 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 import CardSection from '../ui/card-section';
-import { Trash2, PlusCircle } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Gamepad2, Plus, Trash } from 'lucide-react';
 
-export interface Game {
+interface Game {
   id: string;
   name: string;
   accountIdLabel: string;
@@ -24,270 +27,223 @@ export interface Game {
 
 const GamesManager = () => {
   const [games, setGames] = useState<Game[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const [newGame, setNewGame] = useState({
+  const [newGame, setNewGame] = useState<Omit<Game, 'id' | 'createdAt'>>({
     name: '',
     accountIdLabel: 'معرف اللاعب',
     price: 0,
-    currency: 'usdt' as 'usdt' | 'syp',
+    currency: 'usdt',
     isActive: true,
   });
   
-  // Load games from local storage
+  const [isAdding, setIsAdding] = useState(false);
+
+  // Load games from localStorage
   useEffect(() => {
     const storedGames = localStorage.getItem('games');
     if (storedGames) {
       try {
         const parsedGames = JSON.parse(storedGames);
         // Convert string dates to Date objects
-        const gamesWithDates = parsedGames.map((game: any) => ({
-          ...game,
-          createdAt: new Date(game.createdAt)
-        }));
-        setGames(gamesWithDates);
+        setGames(
+          parsedGames.map((game: any) => ({
+            ...game,
+            createdAt: new Date(game.createdAt)
+          }))
+        );
       } catch (error) {
         console.error('Error parsing games data:', error);
       }
     }
   }, []);
 
-  // Save games to local storage whenever they change
+  // Save games to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('games', JSON.stringify(games));
   }, [games]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    
-    if (name === 'price') {
-      setNewGame({
-        ...newGame,
-        [name]: parseFloat(value) || 0
-      });
-    } else {
-      setNewGame({
-        ...newGame,
-        [name]: value
-      });
-    }
+  const handleInputChange = (key: keyof Omit<Game, 'id' | 'createdAt' | 'isActive'>, value: string | number) => {
+    setNewGame({
+      ...newGame,
+      [key]: key === 'price' ? parseFloat(value as string) || 0 : value
+    });
+  };
+
+  const handleToggleActive = (id: string) => {
+    setGames(games.map(game => 
+      game.id === id ? { ...game, isActive: !game.isActive } : game
+    ));
+    toast({
+      title: 'تم تحديث حالة اللعبة',
+    });
   };
 
   const handleAddGame = () => {
-    if (!newGame.name) {
+    if (!newGame.name || newGame.price <= 0) {
       toast({
         title: 'خطأ',
-        description: 'يرجى إدخال اسم اللعبة',
+        description: 'يرجى إدخال اسم اللعبة والسعر',
         variant: 'destructive'
       });
       return;
     }
 
-    if (newGame.price <= 0) {
-      toast({
-        title: 'خطأ',
-        description: 'يجب أن يكون السعر أكبر من صفر',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    // Create a new game object
-    const game: Game = {
+    const gameToAdd: Game = {
+      ...newGame,
       id: Math.random().toString(36).substring(2, 11),
-      name: newGame.name,
-      accountIdLabel: newGame.accountIdLabel,
-      price: newGame.price,
-      currency: newGame.currency,
-      isActive: newGame.isActive,
       createdAt: new Date()
     };
-    
-    // Add to games list
-    setGames([...games, game]);
-    
-    // Reset form fields
+
+    setGames([...games, gameToAdd]);
     setNewGame({
       name: '',
       accountIdLabel: 'معرف اللاعب',
       price: 0,
       currency: 'usdt',
-      isActive: true
+      isActive: true,
     });
-    
+    setIsAdding(false);
+
     toast({
-      title: 'تمت الإضافة',
-      description: 'تم إضافة اللعبة بنجاح'
-    });
-    
-    setIsLoading(false);
-  };
-  
-  const toggleGameStatus = (id: string) => {
-    setGames(games.map(game => 
-      game.id === id ? { ...game, isActive: !game.isActive } : game
-    ));
-    
-    toast({
-      title: 'تم تحديث الحالة',
-      description: 'تم تحديث حالة اللعبة بنجاح'
-    });
-  };
-  
-  const deleteGame = (id: string) => {
-    setGames(games.filter(game => game.id !== id));
-    
-    toast({
-      title: 'تم الحذف',
-      description: 'تم حذف اللعبة بنجاح'
+      title: 'تمت إضافة اللعبة',
+      description: `تمت إضافة ${gameToAdd.name} بنجاح`
     });
   };
 
-  const formatNumber = (num: number) => {
-    return num.toLocaleString('en-US');
+  const handleDeleteGame = (id: string) => {
+    setGames(games.filter(game => game.id !== id));
+    toast({
+      title: 'تم حذف اللعبة',
+    });
   };
 
   return (
-    <CardSection title="إدارة شحن الألعاب">
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-2">
-            <label className="text-sm text-muted-foreground mb-1 block">اسم اللعبة</label>
-            <Input
-              type="text"
-              name="name"
-              value={newGame.name}
-              onChange={handleInputChange}
-              placeholder="أدخل اسم اللعبة"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">نوع المعرف</label>
-            <Input
-              type="text"
-              name="accountIdLabel"
-              value={newGame.accountIdLabel}
-              onChange={handleInputChange}
-              placeholder="مثل: معرف اللاعب، ID، الخ"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">السعر</label>
-            <Input
-              type="number"
-              name="price"
-              value={newGame.price}
-              onChange={handleInputChange}
-              placeholder="أدخل السعر"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm text-muted-foreground mb-1 block">العملة</label>
-            <Select
-              value={newGame.currency}
-              onValueChange={(value) => setNewGame({ ...newGame, currency: value as 'usdt' | 'syp' })}
-            >
-              <SelectTrigger className="bg-[#242C3E] border-[#2A3348] text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#242C3E] border-[#2A3348] text-white">
-                <SelectItem value="usdt">USDT</SelectItem>
-                <SelectItem value="syp">SYP</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Switch
-              id="game-active"
-              checked={newGame.isActive}
-              onCheckedChange={(checked) => setNewGame({ ...newGame, isActive: checked })}
-            />
-            <Label htmlFor="game-active">نشط</Label>
-          </div>
-          
+    <CardSection title="إدارة الألعاب">
+      <div className="space-y-4">
+        {/* Add Game Button */}
+        {!isAdding && (
           <Button 
-            onClick={handleAddGame} 
-            disabled={isLoading}
+            onClick={() => setIsAdding(true)} 
             className="flex items-center gap-2"
           >
-            <PlusCircle size={16} />
-            <span>إضافة لعبة</span>
+            <Plus className="h-4 w-4" />
+            إضافة لعبة جديدة
           </Button>
-        </div>
-        
-        <div className="border border-[#2A3348] rounded-md overflow-hidden mt-6">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-[#1A1E2C] hover:bg-[#1A1E2C]">
-                <TableHead className="text-white">اسم اللعبة</TableHead>
-                <TableHead className="text-white">نوع المعرف</TableHead>
-                <TableHead className="text-white">السعر</TableHead>
-                <TableHead className="text-white">الحالة</TableHead>
-                <TableHead className="text-white">الإجراءات</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {games.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                    لا توجد ألعاب متاحة حاليًا
-                  </TableCell>
-                </TableRow>
-              ) : (
-                games.map((game) => (
-                  <TableRow key={game.id} className="bg-[#1E293B] hover:bg-[#242C3E] border-t border-[#2A3348]">
-                    <TableCell className="font-medium text-white">{game.name}</TableCell>
-                    <TableCell>{game.accountIdLabel}</TableCell>
-                    <TableCell>
-                      {formatNumber(game.price)} {game.currency === 'usdt' ? 'USDT' : 'ل.س'}
-                    </TableCell>
-                    <TableCell>
-                      {game.isActive ? (
-                        <Badge className="bg-green-500/20 text-green-500 border-green-500/20">
-                          نشط
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-500/20 text-red-500 border-red-500/20">
-                          معطل
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleGameStatus(game.id)}
-                          className="border-[#2A3348]"
-                        >
-                          {game.isActive ? 'تعطيل' : 'تفعيل'}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteGame(game.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        )}
+
+        {/* Add Game Form */}
+        {isAdding && (
+          <div className="p-4 border border-[#2A3348] bg-[#1E293B] rounded-md space-y-4">
+            <h3 className="font-medium">إضافة لعبة جديدة</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">اسم اللعبة</label>
+                <Input
+                  placeholder="أدخل اسم اللعبة"
+                  value={newGame.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">نص معرف الحساب</label>
+                <Input
+                  placeholder="مثال: معرف اللاعب"
+                  value={newGame.accountIdLabel}
+                  onChange={(e) => handleInputChange('accountIdLabel', e.target.value)}
+                  className="bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">السعر</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={newGame.price || ''}
+                  onChange={(e) => handleInputChange('price', e.target.value)}
+                  className="bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm text-muted-foreground block mb-1">العملة</label>
+                <Select
+                  value={newGame.currency}
+                  onValueChange={(value: 'usdt' | 'syp') => handleInputChange('currency', value)}
+                >
+                  <SelectTrigger className="bg-[#242C3E] border-[#2A3348]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#242C3E] border-[#2A3348]">
+                    <SelectItem value="usdt">USDT</SelectItem>
+                    <SelectItem value="syp">ليرة سورية</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsAdding(false)}
+                className="border-[#2A3348]"
+              >
+                إلغاء
+              </Button>
+              <Button onClick={handleAddGame}>
+                إضافة اللعبة
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Games List */}
+        {games.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-[#2A3348] rounded-md">
+            <Gamepad2 className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+            <p className="text-muted-foreground">لم تتم إضافة ألعاب بعد</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {games.map(game => (
+              <div 
+                key={game.id}
+                className="flex flex-wrap items-center justify-between p-4 border border-[#2A3348] bg-[#1E293B] rounded-md gap-4"
+              >
+                <div className="flex items-center gap-3">
+                  <Gamepad2 className="h-6 w-6 text-muted-foreground" />
+                  <div>
+                    <h4 className="font-medium">{game.name}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {game.price} {game.currency.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">مفعّل</span>
+                    <Switch
+                      checked={game.isActive}
+                      onCheckedChange={() => handleToggleActive(game.id)}
+                    />
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteGame(game.id)}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash className="h-4 w-4" />
+                    <span className="sr-only">حذف</span>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </CardSection>
   );
