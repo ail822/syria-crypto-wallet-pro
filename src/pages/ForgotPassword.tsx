@@ -1,14 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
-import { useTwoFactor } from '@/hooks/useTwoFactor';
-import { MessageCircle, Shield } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -16,14 +14,25 @@ const ForgotPassword = () => {
   
   const [email, setEmail] = useState('');
   const [telegramId, setTelegramId] = useState('');
-  const [step, setStep] = useState<'email' | '2fa' | 'telegram'>('email');
+  const [step, setStep] = useState<'email' | 'telegram' | 'reset'>('email');
   const [userId, setUserId] = useState('');
-  const [token, setToken] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [botUsername, setBotUsername] = useState('');
   
-  const { verifyToken } = useTwoFactor(userId);
+  useEffect(() => {
+    // Load telegram bot settings to get the username
+    const botSettings = localStorage.getItem('telegramBotSettings');
+    if (botSettings) {
+      const { botUsername } = JSON.parse(botSettings);
+      if (botUsername) {
+        setBotUsername(botUsername);
+      }
+    }
+  }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,27 +65,12 @@ const ForgotPassword = () => {
       
       setUserId(user.id);
       
-      // Check if user has 2FA enabled
-      const twoFactorData = localStorage.getItem(`2fa_${user.id}`);
-      if (twoFactorData) {
-        const parsed = JSON.parse(twoFactorData);
-        if (parsed.isEnabled) {
-          setStep('2fa');
-          return;
-        }
-      }
+      // Generate random 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      setGeneratedCode(code);
       
-      // Check if user has Telegram ID
-      if (user.telegramId) {
-        setStep('telegram');
-        return;
-      }
-      
-      toast({
-        title: "لا يمكن إعادة تعيين كلمة المرور",
-        description: "لا يوجد طرق تحقق مفعلة لهذا الحساب. الرجاء التواصل مع الدعم الفني.",
-        variant: "destructive",
-      });
+      // Move to telegram verification step
+      setStep('telegram');
       
     } catch (error) {
       console.error('Error finding user:', error);
@@ -90,87 +84,24 @@ const ForgotPassword = () => {
     }
   };
 
-  const handle2FAVerify = () => {
+  const handleVerifyCode = () => {
     try {
       setIsLoading(true);
       
-      if (token.length !== 6) {
+      if (verificationCode !== generatedCode) {
         toast({
-          title: "الرمز غير صحيح",
-          description: "يرجى إدخال رمز مكون من 6 أرقام",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const isValid = verifyToken(token);
-      
-      if (!isValid) {
-        toast({
-          title: "الرمز غير صحيح",
+          title: "رمز التحقق غير صحيح",
           description: "يرجى التحقق من الرمز وإعادة المحاولة",
           variant: "destructive",
         });
         return;
       }
       
-      // If 2FA is valid, allow password reset
-      handleResetPassword();
+      // Move to password reset step
+      setStep('reset');
       
     } catch (error) {
-      console.error('Error verifying 2FA:', error);
-      toast({
-        title: "حدث خطأ",
-        description: "الرجاء المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTelegramVerify = () => {
-    try {
-      setIsLoading(true);
-      
-      // Find user by ID
-      const registeredUsersJSON = localStorage.getItem('registeredUsers');
-      if (!registeredUsersJSON) {
-        toast({
-          title: "حدث خطأ",
-          description: "لا يمكن التحقق من المستخدم",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const registeredUsers = JSON.parse(registeredUsersJSON);
-      const user = registeredUsers.find((u: any) => u.id === userId);
-      
-      if (!user) {
-        toast({
-          title: "حدث خطأ",
-          description: "المستخدم غير موجود",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Verify Telegram ID
-      if (user.telegramId !== telegramId) {
-        toast({
-          title: "معرف تلغرام غير صحيح",
-          description: "الرجاء التحقق من معرف تلغرام وإعادة المحاولة",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // If Telegram ID is valid, allow password reset
-      handleResetPassword();
-      
-    } catch (error) {
-      console.error('Error verifying Telegram ID:', error);
+      console.error('Error verifying code:', error);
       toast({
         title: "حدث خطأ",
         description: "الرجاء المحاولة مرة أخرى",
@@ -201,6 +132,8 @@ const ForgotPassword = () => {
     }
     
     try {
+      setIsLoading(true);
+      
       // Update user password
       const registeredUsersJSON = localStorage.getItem('registeredUsers');
       if (!registeredUsersJSON) {
@@ -239,6 +172,8 @@ const ForgotPassword = () => {
         description: "الرجاء المحاولة مرة أخرى",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -266,75 +201,65 @@ const ForgotPassword = () => {
                 />
               </div>
               
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                disabled={isLoading}
+              >
                 {isLoading ? "جارٍ البحث..." : "متابعة"}
               </Button>
               
               <div className="text-center mt-4">
-                <Link to="/login" className="text-sm text-primary hover:underline">
+                <Link 
+                  to="/login" 
+                  className="text-sm text-[#1E88E5] hover:underline"
+                >
                   العودة إلى تسجيل الدخول
                 </Link>
               </div>
             </form>
           )}
           
-          {step === '2fa' && (
+          {step === 'telegram' && (
             <div className="space-y-6">
               <div className="flex justify-center mb-4">
-                <Shield className="w-16 h-16 text-primary/80" />
+                <MessageCircle className="w-16 h-16 text-[#1E88E5]" />
               </div>
               
-              <h2 className="text-xl font-semibold text-center">التحقق بخطوتين</h2>
-              <p className="text-center text-sm text-muted-foreground">
-                أدخل رمز التحقق من تطبيق المصادقة الخاص بك
+              <h2 className="text-xl font-semibold text-center">التحقق عبر تلغرام</h2>
+              <p className="text-center text-sm text-muted-foreground mb-6">
+                سنرسل لك رمز التحقق على تلغرام. يرجى اتباع الخطوات التالية:
               </p>
               
-              <div className="flex justify-center py-2">
-                <InputOTP maxLength={6} value={token} onChange={setToken}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
+              <ol className="list-decimal list-inside space-y-2 text-gray-300 bg-[#111827] p-4 rounded-lg">
+                <li>قم بفتح تطبيق تلغرام</li>
+                <li>ابحث عن البوت: <span className="text-[#1E88E5] font-bold">{botUsername || '@wallet_bot'}</span></li>
+                <li>أرسل له الرسالة التالية: <span className="text-[#1E88E5] font-bold">verify {generatedCode}</span></li>
+                <li>انتظر رسالة تأكيد من البوت</li>
+              </ol>
               
-              <div className="space-y-2">
-                <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="verification-code">رمز التحقق</Label>
                 <Input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="أدخل كلمة المرور الجديدة"
-                  required
-                  className="bg-[#242C3E] border-[#2A3348] text-white"
+                  id="verification-code"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value)}
+                  placeholder="أدخل الرمز المكون من 6 أرقام"
+                  className="bg-[#242C3E] border-[#2A3348] text-white text-center text-lg font-mono tracking-widest"
+                  maxLength={6}
                 />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirm-password">تأكيد كلمة المرور</Label>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="أكد كلمة المرور الجديدة"
-                  required
-                  className="bg-[#242C3E] border-[#2A3348] text-white"
-                />
+                <p className="text-xs text-muted-foreground text-center">
+                  أدخل الرمز الذي أرسلناه لك على تلغرام
+                </p>
               </div>
               
               <div className="space-y-4 pt-2">
                 <Button 
-                  onClick={handle2FAVerify} 
-                  className="w-full" 
-                  disabled={isLoading || token.length !== 6}
+                  onClick={handleVerifyCode} 
+                  className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                  disabled={isLoading || verificationCode.length !== 6}
                 >
-                  {isLoading ? "جارٍ التحقق..." : "تحقق وإعادة تعيين كلمة المرور"}
+                  {isLoading ? "جارٍ التحقق..." : "تحقق من الرمز"}
                 </Button>
                 
                 <Button 
@@ -349,28 +274,12 @@ const ForgotPassword = () => {
             </div>
           )}
           
-          {step === 'telegram' && (
+          {step === 'reset' && (
             <div className="space-y-6">
-              <div className="flex justify-center mb-4">
-                <MessageCircle className="w-16 h-16 text-primary/80" />
-              </div>
-              
-              <h2 className="text-xl font-semibold text-center">التحقق عبر تلغرام</h2>
+              <h2 className="text-xl font-semibold text-center">إعادة تعيين كلمة المرور</h2>
               <p className="text-center text-sm text-muted-foreground">
-                أدخل معرف تلغرام المرتبط بحسابك
+                أدخل كلمة المرور الجديدة
               </p>
-              
-              <div className="space-y-2">
-                <Label htmlFor="telegram-id">معرف تلغرام</Label>
-                <Input
-                  id="telegram-id"
-                  value={telegramId}
-                  onChange={(e) => setTelegramId(e.target.value)}
-                  placeholder="أدخل معرف تلغرام الخاص بك"
-                  required
-                  className="bg-[#242C3E] border-[#2A3348] text-white"
-                />
-              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
@@ -398,24 +307,13 @@ const ForgotPassword = () => {
                 />
               </div>
               
-              <div className="space-y-4 pt-2">
-                <Button 
-                  onClick={handleTelegramVerify} 
-                  className="w-full" 
-                  disabled={isLoading || !telegramId.trim()}
-                >
-                  {isLoading ? "جارٍ التحقق..." : "تحقق وإعادة تعيين كلمة المرور"}
-                </Button>
-                
-                <Button 
-                  variant="ghost"
-                  onClick={() => setStep('email')} 
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  العودة
-                </Button>
-              </div>
+              <Button 
+                onClick={handleResetPassword} 
+                className="w-full bg-[#1E88E5] hover:bg-[#1A237E]" 
+                disabled={isLoading}
+              >
+                {isLoading ? "جاري إعادة التعيين..." : "إعادة تعيين كلمة المرور"}
+              </Button>
             </div>
           )}
         </div>

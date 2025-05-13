@@ -3,6 +3,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+
 @layer base {
   :root {
     --background: 220 26% 14%;
@@ -11,7 +13,7 @@
     --card-foreground: 0 0% 95%;
     --popover: 224 35% 9%;
     --popover-foreground: 0 0% 95%;
-    --primary: 221 83% 53%;
+    --primary: 210 93% 51%;
     --primary-foreground: 0 0% 100%;
     --secondary: 220 14% 22%;
     --secondary-foreground: 0 0% 100%;
@@ -25,6 +27,12 @@
     --input: 220 13% 25%;
     --ring: 224 71% 45%;
     --radius: 0.5rem;
+    
+    /* Wallet custom colors */
+    --wallet-blue: 210 88% 51%;
+    --wallet-dark: 240 68% 30%;
+    --wallet-gold: 43 100% 52%;
+    --wallet-amber: 34 100% 50%;
   }
  
   .dark {
@@ -148,6 +156,7 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Tajawal', sans-serif;
   }
 }
 
@@ -165,7 +174,7 @@
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--background)) 100%);
+  background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(240, 60%, 15%) 100%);
   background-size: 200% 200%;
   animation: gradientAnimation 15s ease infinite;
 }
@@ -182,4 +191,34 @@
   }
 }
 
-/* ... keep existing code */
+/* Custom wallet-specific styles */
+.wallet-btn-primary {
+  @apply bg-[#1E88E5] text-white hover:bg-[#1A237E] transition-colors;
+}
+
+.wallet-btn-secondary {
+  @apply bg-[#FFC107] text-black hover:bg-amber-500 transition-colors;
+}
+
+.wallet-card {
+  @apply bg-[#1A1E2C] border-[#2A3348] rounded-xl shadow-md;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.rtl {
+  direction: rtl;
+}

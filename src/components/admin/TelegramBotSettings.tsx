@@ -3,84 +3,51 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { MessageCircle, CheckCircle, AlertCircle, Save, Folder } from 'lucide-react';
-import { 
-  loadTelegramConfig, 
-  saveTelegramConfig,
-  enableTelegramBot, 
-  disableTelegramBot, 
-  sendTelegramMessage,
-  toggleAutoBackup,
-  createSystemBackup
-} from '@/utils/telegramBot';
-import CardSection from '@/components/ui/card-section';
+import { MessageCircle, Save } from 'lucide-react';
 
 const TelegramBotSettings = () => {
-  const [config, setConfig] = useState({
-    enabled: false,
-    adminId: '',
-    token: '',
-    lastSyncTime: 0,
-    autoBackup: false,
-    lastBackupTime: 0
+  const [botSettings, setBotSettings] = useState({
+    botToken: '',
+    botUsername: '',
+    isEnabled: false,
+    welcomeMessage: 'مرحباً بك في بوت محفظتنا! يمكنك استخدام هذا البوت للتحقق والحصول على إشعارات عن حسابك.',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [testMessage, setTestMessage] = useState('');
-
-  // Load configuration on mount
+  
   useEffect(() => {
-    const savedConfig = loadTelegramConfig();
-    setConfig(savedConfig);
+    // Load saved bot settings from localStorage if they exist
+    const savedSettings = localStorage.getItem('telegramBotSettings');
+    if (savedSettings) {
+      setBotSettings(JSON.parse(savedSettings));
+    }
   }, []);
-
-  const handleEnableBot = async () => {
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setBotSettings(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
+      // Save settings to localStorage
+      localStorage.setItem('telegramBotSettings', JSON.stringify(botSettings));
       
-      // Validate admin ID
-      if (!config.adminId.trim()) {
-        toast({
-          title: "معرف الإدارة مطلوب",
-          description: "يرجى إدخال معرف الإدارة",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Validate token
-      if (!config.token.trim()) {
-        toast({
-          title: "رمز البوت مطلوب",
-          description: "يرجى إدخال رمز البوت من @BotFather",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const success = enableTelegramBot(config.adminId, config.token);
-      
-      if (success) {
-        // Refresh config
-        const updatedConfig = loadTelegramConfig();
-        setConfig(updatedConfig);
-        
-        toast({
-          title: "تم تفعيل البوت بنجاح",
-        });
-      } else {
-        toast({
-          title: "فشل تفعيل البوت",
-          description: "تأكد من أن معرف الإدارة صحيح (يجب أن يكون 904718229)",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error(error);
       toast({
-        title: "حدث خطأ",
+        title: "تم حفظ الإعدادات بنجاح",
+        description: "تم تحديث إعدادات بوت تلغرام",
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: "خطأ في حفظ الإعدادات",
         description: "يرجى المحاولة مرة أخرى",
         variant: "destructive",
       });
@@ -88,290 +55,94 @@ const TelegramBotSettings = () => {
       setIsLoading(false);
     }
   };
-
-  const handleDisableBot = async () => {
-    try {
-      setIsLoading(true);
-      
-      const success = disableTelegramBot(config.adminId);
-      
-      if (success) {
-        // Refresh config
-        const updatedConfig = loadTelegramConfig();
-        setConfig(updatedConfig);
-        
-        toast({
-          title: "تم إيقاف البوت بنجاح",
-        });
-      } else {
-        toast({
-          title: "فشل إيقاف البوت",
-          description: "تأكد من أنك تملك الصلاحيات اللازمة",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "حدث خطأ",
-        description: "يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendTestMessage = async () => {
-    try {
-      setIsLoading(true);
-      
-      if (!testMessage.trim()) {
-        toast({
-          title: "الرسالة فارغة",
-          description: "يرجى إدخال رسالة الاختبار",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const success = await sendTelegramMessage(testMessage);
-      
-      if (success) {
-        toast({
-          title: "تم إضافة الرسالة إلى قائمة الانتظار",
-          description: "سيتم إرسال الرسالة قريبًا"
-        });
-        setTestMessage('');
-      } else {
-        toast({
-          title: "فشل إرسال الرسالة",
-          description: "تأكد من تكوين البوت بشكل صحيح",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "حدث خطأ",
-        description: "يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleToggleAutoBackup = async (enabled: boolean) => {
-    try {
-      setIsLoading(true);
-      
-      const success = toggleAutoBackup(enabled);
-      
-      if (success) {
-        // Refresh config
-        const updatedConfig = loadTelegramConfig();
-        setConfig(updatedConfig);
-        
-        toast({
-          title: enabled ? "تم تفعيل النسخ الاحتياطي التلقائي" : "تم إيقاف النسخ الاحتياطي التلقائي",
-        });
-      } else {
-        toast({
-          title: "فشل تغيير إعدادات النسخ الاحتياطي",
-          description: "تأكد من أن البوت مفعل",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "حدث خطأ",
-        description: "يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCreateBackupNow = async () => {
-    try {
-      setIsLoading(true);
-      
-      const success = await createSystemBackup();
-      
-      if (success) {
-        // Refresh config
-        const updatedConfig = loadTelegramConfig();
-        setConfig(updatedConfig);
-        
-        toast({
-          title: "تم إنشاء نسخة احتياطية بنجاح",
-        });
-      } else {
-        toast({
-          title: "فشل إنشاء نسخة احتياطية",
-          description: "تأكد من أن البوت مفعل",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "حدث خطأ",
-        description: "يرجى المحاولة مرة أخرى",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  
   return (
-    <CardSection title="إعدادات بوت التلغرام">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium">حالة الاتصال</h3>
-            <p className="text-sm text-muted-foreground">
-              {config.enabled 
-                ? `آخر اتصال: ${new Date(config.lastSyncTime).toLocaleString('ar-SA')}`
-                : "البوت غير مفعل"
-              }
-            </p>
-          </div>
-          <div className="flex items-center">
-            <span className={`mr-2 ${config.enabled ? "text-green-500" : "text-gray-500"}`}>
-              {config.enabled ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-            </span>
-            <Switch checked={config.enabled} disabled />
-          </div>
-        </div>
-        
-        <Alert className={config.enabled ? "border-green-500 bg-green-500/10" : "border-amber-500 bg-amber-500/10"}>
-          <MessageCircle className={`h-4 w-4 ${config.enabled ? "text-green-500" : "text-amber-500"}`} />
-          <AlertTitle>
-            {config.enabled ? "البوت نشط" : "البوت غير نشط"}
-          </AlertTitle>
-          <AlertDescription>
-            {config.enabled 
-              ? "البوت متصل ويرسل النسخ الاحتياطية بنجاح"
-              : "البوت غير متصل حاليًا. قم بالتفعيل أدناه"
-            }
-          </AlertDescription>
-        </Alert>
-        
-        <div className="space-y-4">
+    <Card className="border-[#2A3348] bg-[#1A1E2C] shadow-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageCircle className="h-5 w-5 text-[#1E88E5]" />
+          <span>إعدادات بوت تلغرام</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="adminId">معرف الإدارة</Label>
+            <Label htmlFor="botUsername">معرف البوت (مع @)</Label>
             <Input
-              id="adminId"
-              value={config.adminId}
-              onChange={(e) => setConfig({...config, adminId: e.target.value})}
-              placeholder="أدخل معرف الإدارة"
+              id="botUsername"
+              name="botUsername"
+              value={botSettings.botUsername}
+              onChange={handleChange}
+              placeholder="@example_bot"
               className="bg-[#242C3E] border-[#2A3348] text-white"
             />
-            <p className="text-sm text-muted-foreground">
-              يجب أن يكون المعرف 904718229 للتفعيل
-            </p>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="botToken">رمز البوت (Bot Token)</Label>
             <Input
               id="botToken"
-              value={config.token}
-              onChange={(e) => setConfig({...config, token: e.target.value})}
-              placeholder="أدخل رمز البوت من @BotFather"
+              name="botToken"
+              value={botSettings.botToken}
+              onChange={handleChange}
+              placeholder="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              className="bg-[#242C3E] border-[#2A3348] text-white"
+            />
+            <p className="text-xs text-muted-foreground">
+              يمكنك الحصول على رمز البوت من BotFather على تلغرام
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="welcomeMessage">رسالة الترحيب</Label>
+            <Input
+              id="welcomeMessage"
+              name="welcomeMessage"
+              value={botSettings.welcomeMessage}
+              onChange={handleChange}
+              placeholder="رسالة الترحيب للمستخدمين الجدد"
               className="bg-[#242C3E] border-[#2A3348] text-white"
             />
           </div>
           
-          <div className="flex gap-3">
-            {config.enabled ? (
-              <Button
-                variant="destructive"
-                onClick={handleDisableBot}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                إيقاف البوت
-              </Button>
-            ) : (
-              <Button 
-                onClick={handleEnableBot}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                تفعيل البوت
-              </Button>
-            )}
+          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <input
+              type="checkbox"
+              id="isEnabled"
+              name="isEnabled"
+              checked={botSettings.isEnabled}
+              onChange={handleChange}
+              className="h-4 w-4 rounded border-[#2A3348] bg-[#242C3E]"
+            />
+            <Label htmlFor="isEnabled" className="text-sm">تفعيل البوت</Label>
           </div>
-        </div>
+          
+          <Button 
+            type="submit" 
+            className="bg-[#1E88E5] hover:bg-[#1A237E] w-full"
+            disabled={isLoading}
+          >
+            {isLoading ? "جاري الحفظ..." : (
+              <>
+                <Save className="ml-2" /> 
+                حفظ الإعدادات
+              </>
+            )}
+          </Button>
+        </form>
         
-        {config.enabled && (
-          <>
-            <div className="space-y-4 pt-4 mt-4 border-t border-[#2A3348]">
-              <h3 className="text-lg font-medium">نظام النسخ الاحتياطي</h3>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">النسخ الاحتياطي التلقائي</h4>
-                  <p className="text-sm text-muted-foreground">إرسال نسخة احتياطية عند كل معاملة</p>
-                </div>
-                <Switch 
-                  checked={config.autoBackup} 
-                  onCheckedChange={handleToggleAutoBackup} 
-                  disabled={isLoading}
-                />
-              </div>
-              
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {config.lastBackupTime > 0 ? 
-                    `آخر نسخة احتياطية: ${new Date(config.lastBackupTime).toLocaleString('ar-SA')}` : 
-                    'لم يتم إنشاء نسخة احتياطية بعد'
-                  }
-                </p>
-                
-                <Button
-                  onClick={handleCreateBackupNow}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                  variant="outline"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  إنشاء نسخة احتياطية الآن
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-4 pt-4 mt-4 border-t border-[#2A3348]">
-              <h3 className="text-lg font-medium">اختبار الاتصال</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="testMessage">رسالة اختبارية</Label>
-                <Input
-                  id="testMessage"
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  placeholder="أدخل رسالة لاختبار الاتصال مع البوت"
-                  className="bg-[#242C3E] border-[#2A3348] text-white"
-                />
-              </div>
-              
-              <Button
-                onClick={handleSendTestMessage}
-                disabled={isLoading || !testMessage.trim()}
-              >
-                إرسال رسالة اختبارية
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
-    </CardSection>
+        <div className="mt-6 p-4 bg-[#111827] rounded-lg">
+          <h3 className="text-lg font-semibold mb-2 text-white">طريقة الإعداد:</h3>
+          <ol className="list-decimal list-inside space-y-2 text-gray-300 text-sm">
+            <li>افتح تطبيق تلغرام وابحث عن @BotFather</li>
+            <li>أرسل الأمر /newbot واتبع التعليمات لإنشاء بوت جديد</li>
+            <li>بعد إنشاء البوت، ستحصل على رمز البوت (Bot Token) واسم المستخدم الخاص به</li>
+            <li>قم بإدخال هذه المعلومات هنا وتفعيل البوت</li>
+            <li>سيتم استخدام البوت للتحقق من المستخدمين وإرسال إشعارات المعاملات</li>
+          </ol>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

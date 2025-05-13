@@ -17,6 +17,7 @@ import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import TwoFactorVerify from "./pages/TwoFactorVerify";
+import About from "./pages/About";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/verify-2fa" element={<TwoFactorVerify />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 {/* Static pages */}
