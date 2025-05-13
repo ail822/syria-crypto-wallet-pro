@@ -24,6 +24,7 @@ const TELEGRAM_QUEUE_KEY = 'telegram_message_queue';
 const TELEGRAM_API_URL = 'https://api.telegram.org/bot';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 5000; // 5 seconds
+const ADMIN_ID = '904718229'; // Default admin ID
 
 // In-memory queue for faster access
 let messageQueue: QueueItem[] = [];
@@ -77,7 +78,7 @@ const processQueue = async () => {
       return;
     }
     
-    // Try to send the message
+    // Try to send the message to the admin ID
     const url = `${TELEGRAM_API_URL}${config.token}/sendMessage`;
     const response = await fetch(url, {
       method: 'POST',
@@ -85,7 +86,7 @@ const processQueue = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        chat_id: config.adminId,
+        chat_id: ADMIN_ID, // Always use the fixed admin ID
         text: item.text,
         parse_mode: 'Markdown'
       })
@@ -188,17 +189,16 @@ export const saveTelegramConfig = (config: TelegramConfig): void => {
 // Enable telegram bot
 export const enableTelegramBot = (adminId: string, token: string): boolean => {
   try {
-    const config = loadTelegramConfig();
-    
     // Only admins with ID 904718229 can enable the bot
-    if (adminId !== '904718229') {
+    if (adminId !== ADMIN_ID) {
       return false;
     }
     
+    const config = loadTelegramConfig();
     const updatedConfig: TelegramConfig = {
       ...config,
       enabled: true,
-      adminId,
+      adminId: ADMIN_ID, // Always use the fixed admin ID
       token,
       lastSyncTime: Date.now()
     };
@@ -267,7 +267,7 @@ export const sendTelegramMessage = async (text: string): Promise<boolean> => {
   try {
     const config = loadTelegramConfig();
     
-    if (!config.enabled || !config.token || !config.adminId) {
+    if (!config.enabled || !config.token) {
       console.log('Telegram bot is not enabled or missing configuration');
       return false;
     }

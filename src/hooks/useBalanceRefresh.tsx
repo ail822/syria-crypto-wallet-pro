@@ -8,7 +8,7 @@ interface UseBalanceRefreshOptions {
 }
 
 export const useBalanceRefresh = (options: UseBalanceRefreshOptions = {}) => {
-  const { interval = 10000, enabled = true } = options;
+  const { interval = 5000, enabled = true } = options; // Changed from 10000 to 5000 ms (5 seconds)
   const { user, refreshUser } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);

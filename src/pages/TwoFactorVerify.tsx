@@ -7,10 +7,12 @@ import { usePlatform } from '@/context/PlatformContext';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { useTwoFactor } from '@/hooks/useTwoFactor';
 import { Shield } from 'lucide-react';
+import { sendTelegramMessage } from '@/utils/telegramBot';
 
 const TwoFactorVerify = () => {
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { platformName } = usePlatform();
@@ -19,14 +21,26 @@ const TwoFactorVerify = () => {
   const userId = location.state?.userId;
   const redirectTo = location.state?.redirectTo || '/';
   
-  const { verifyToken } = useTwoFactor(userId || '');
+  const { verifyToken, twoFactorData } = useTwoFactor(userId || '');
   
   // If no user ID is provided, redirect to login
   useEffect(() => {
     if (!userId) {
       navigate('/login');
+    } else if (twoFactorData && !verificationSent) {
+      // Generate a random 6-digit code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Store the code temporarily (this would normally be done server-side)
+      localStorage.setItem(`2fa_temp_code_${userId}`, verificationCode);
+      
+      // Send the code via Telegram to admin
+      const message = `🔐 *طلب تحقق جديد*\n\nرمز التحقق: \`${verificationCode}\`\nمعرف المستخدم: \`${userId}\``;
+      sendTelegramMessage(message);
+      
+      setVerificationSent(true);
     }
-  }, [userId, navigate]);
+  }, [userId, navigate, twoFactorData, verificationSent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,9 +57,16 @@ const TwoFactorVerify = () => {
     try {
       setIsLoading(true);
       
-      const isValid = verifyToken(token);
+      // Get the temporary code from localStorage
+      const storedCode = localStorage.getItem(`2fa_temp_code_${userId}`);
+      
+      // Check if the entered token matches the stored code or can be verified via TOTP
+      const isValid = (storedCode && token === storedCode) || verifyToken(token);
       
       if (isValid) {
+        // Remove the temporary code
+        localStorage.removeItem(`2fa_temp_code_${userId}`);
+        
         // Store a session token in localStorage to indicate successful 2FA
         localStorage.setItem('2fa_verified', 'true');
         localStorage.setItem('2fa_time', Date.now().toString());
@@ -90,7 +111,7 @@ const TwoFactorVerify = () => {
           
           <h2 className="text-xl font-bold text-center mb-4">أدخل رمز التحقق</h2>
           <p className="text-sm text-muted-foreground text-center mb-6">
-            يرجى إدخال رمز المصادقة من تطبيق Google Authenticator
+            تم إرسال رمز المصادقة إلى المشرف على بوت التلغرام
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-6">

@@ -7,13 +7,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
 import { MessageCircle } from 'lucide-react';
+import { sendTelegramMessage } from '@/utils/telegramBot';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const { platformName } = usePlatform();
   
   const [email, setEmail] = useState('');
-  const [telegramId, setTelegramId] = useState('');
   const [step, setStep] = useState<'email' | 'telegram' | 'reset'>('email');
   const [userId, setUserId] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
@@ -68,6 +68,10 @@ const ForgotPassword = () => {
       // Generate random 6-digit code
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setGeneratedCode(code);
+      
+      // Send code to admin via Telegram
+      const message = `🔑 *طلب استعادة كلمة المرور*\n\nرمز التحقق: \`${code}\`\nالبريد الإلكتروني: ${email}\nمعرف المستخدم: \`${user.id}\``;
+      await sendTelegramMessage(message);
       
       // Move to telegram verification step
       setStep('telegram');
@@ -228,15 +232,8 @@ const ForgotPassword = () => {
               
               <h2 className="text-xl font-semibold text-center">التحقق عبر تلغرام</h2>
               <p className="text-center text-sm text-muted-foreground mb-6">
-                سنرسل لك رمز التحقق على تلغرام. يرجى اتباع الخطوات التالية:
+                تم إرسال رمز التحقق إلى المشرف عبر بوت التلغرام، يرجى الاتصال بالمشرف للحصول على الرمز
               </p>
-              
-              <ol className="list-decimal list-inside space-y-2 text-gray-300 bg-[#111827] p-4 rounded-lg">
-                <li>قم بفتح تطبيق تلغرام</li>
-                <li>ابحث عن البوت: <span className="text-[#1E88E5] font-bold">{botUsername || '@wallet_bot'}</span></li>
-                <li>أرسل له الرسالة التالية: <span className="text-[#1E88E5] font-bold">verify {generatedCode}</span></li>
-                <li>انتظر رسالة تأكيد من البوت</li>
-              </ol>
               
               <div className="space-y-2 mt-4">
                 <Label htmlFor="verification-code">رمز التحقق</Label>
@@ -249,7 +246,7 @@ const ForgotPassword = () => {
                   maxLength={6}
                 />
                 <p className="text-xs text-muted-foreground text-center">
-                  أدخل الرمز الذي أرسلناه لك على تلغرام
+                  أدخل الرمز الذي أرسلناه للمشرف على تلغرام
                 </p>
               </div>
               

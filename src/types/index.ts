@@ -91,3 +91,21 @@ export interface Game {
   imageUrl?: string;
   createdAt: Date;
 }
+
+export interface SocialLinks {
+  [key: string]: string;
+  facebook?: string;
+  youtube?: string;
+  telegram?: string;
+  whatsapp?: string;
+}
+
+export interface BackupData {
+  users: User[];
+  transactions: Transaction[];
+  exchangeRate: ExchangeRate;
+  depositMethods: DepositMethod[];
+  withdrawalMethods: WithdrawalMethodType[];
+  currencies: any[];
+  createdAt: string;
+}
