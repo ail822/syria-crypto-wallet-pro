@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,13 @@ import {
   DollarSign,
   Euro,
   LogIn,
-  UserPlus
+  UserPlus,
+  ArrowRight,
+  Shield,
+  Zap,
+  Globe,
+  Repeat,
+  Gamepad2
 } from 'lucide-react';
 
 const Landing = () => {
@@ -62,7 +67,7 @@ const Landing = () => {
                 منصة المحفظة الإلكترونية المتكاملة
               </h1>
               <p className="text-xl text-white/80 mb-8">
-                نقدم لك خدمات آمنة وسريعة لتحويل العملات وإدارة أرصدتك بكل سهولة،
+                نقدم لك خدمات آمنة وسريعة لتحويل العملات وإدارة أرصدتك بكل سهولة，
                 مع واجهة سهلة الاستخدام وحماية متقدمة لبياناتك.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">

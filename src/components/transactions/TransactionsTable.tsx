@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTransaction } from '@/context/TransactionContext';
 import { 
@@ -96,6 +95,7 @@ const TransactionsTable = () => {
       case 'deposit': return 'إيداع';
       case 'withdrawal': return 'سحب';
       case 'conversion': return 'تحويل';
+      case 'game_recharge': return 'شحن ألعاب';
       default: return type;
     }
   };

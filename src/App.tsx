@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
 import TwoFactorVerify from "./pages/TwoFactorVerify";
 import About from "./pages/About";
+import GameRecharge from "./pages/GameRecharge";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/verify-2fa" element={<TwoFactorVerify />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/games" element={<GameRecharge />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 {/* Static pages */}

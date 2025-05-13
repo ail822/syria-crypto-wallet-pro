@@ -22,6 +22,7 @@ const buttonVariants = cva(
         wallet: "bg-[#1E88E5] text-white hover:bg-[#1A237E]",
         walletGold: "bg-[#FFC107] text-black hover:bg-amber-500",
         walletOutline: "border border-white text-white hover:bg-white/10",
+        game: "bg-green-600 text-white hover:bg-green-700",
       },
       size: {
         default: "h-10 px-4 py-2",

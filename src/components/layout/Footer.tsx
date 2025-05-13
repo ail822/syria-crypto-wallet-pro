@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { usePlatform } from '@/context/PlatformContext';
-import { Facebook, Twitter, Instagram, Telegram } from 'lucide-react';
+import { Facebook, Twitter, Instagram, MessageCircle } from 'lucide-react';
 
 const Footer = () => {
   const { platformName } = usePlatform();
@@ -28,7 +28,7 @@ const Footer = () => {
                 <Instagram size={20} />
               </a>
               <a href="#" className="text-gray-400 hover:text-[#1E88E5] transition-colors">
-                <Telegram size={20} />
+                <MessageCircle size={20} />
               </a>
             </div>
           </div>

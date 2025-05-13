@@ -7,7 +7,7 @@ import { useTransaction } from '@/context/TransactionContext';
 import CardSection from '../ui/card-section';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { Mail, User, MessageCircle, Phone } from 'lucide-react';
+import { Mail, User, MessageCircle, Phone, Gamepad2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -41,7 +41,7 @@ const PendingTransactions = () => {
     // Handle NaN case
     if (isNaN(numValue)) return '0';
     
-    return numValue.toLocaleString();
+    return numValue.toLocaleString('en-US');
   };
 
   const handleApprove = async (id: string) => {
@@ -100,7 +100,7 @@ const PendingTransactions = () => {
       
       toast({ 
         title: 'تم رفض المعاملة',
-        description: selectedTransaction.type === 'withdrawal' 
+        description: selectedTransaction.type === 'withdrawal' || selectedTransaction.type === 'game_recharge'
           ? 'تم إرجاع المبلغ إلى رصيد المستخدم' 
           : undefined 
       });
@@ -125,6 +125,7 @@ const PendingTransactions = () => {
       case 'deposit': return 'إيداع';
       case 'withdrawal': return 'سحب';
       case 'conversion': return 'تحويل';
+      case 'game_recharge': return 'شحن ألعاب';
       default: return type;
     }
   };
@@ -158,6 +159,8 @@ const PendingTransactions = () => {
         case 'c-wallet': return 'C-Wallet';
         default: return transaction.withdrawalMethod;
       }
+    } else if (transaction.type === 'game_recharge') {
+      return transaction.gameName || 'شحن لعبة';
     }
     return '';
   };
@@ -197,6 +200,57 @@ const PendingTransactions = () => {
         </div>
       </div>
     );
+  };
+
+  // Function to render transaction-specific details based on type
+  const renderTransactionDetails = (transaction: Transaction) => {
+    if (transaction.type === 'deposit' && transaction.screenshot) {
+      return (
+        <div className="mt-2">
+          <p className="text-sm font-medium mb-1">لقطة الإثبات:</p>
+          <img 
+            src={transaction.screenshot} 
+            alt="لقطة تحويل" 
+            className="max-h-40 rounded-md border border-[#2A3348]" 
+          />
+        </div>
+      );
+    }
+    
+    if (transaction.type === 'withdrawal' && transaction.recipient) {
+      return (
+        <div className="p-2 bg-[#242C3E] rounded-md text-sm space-y-1">
+          {transaction.recipient.name && (
+            <p>الاسم: {transaction.recipient.name}</p>
+          )}
+          {transaction.recipient.phoneNumber && (
+            <p>الهاتف: {transaction.recipient.phoneNumber}</p>
+          )}
+          {transaction.recipient.province && (
+            <p>المحافظة: {transaction.recipient.province}</p>
+          )}
+          {transaction.recipient.walletId && (
+            <p>معرف المحفظة: {transaction.recipient.walletId}</p>
+          )}
+        </div>
+      );
+    }
+    
+    if (transaction.type === 'game_recharge') {
+      return (
+        <div className="p-2 bg-[#242C3E] rounded-md text-sm space-y-1">
+          <div className="flex items-center gap-2">
+            <Gamepad2 className="h-4 w-4 text-white/60" />
+            <p>اللعبة: {transaction.gameName}</p>
+          </div>
+          {transaction.accountId && (
+            <p>معرف الحساب: {transaction.accountId}</p>
+          )}
+        </div>
+      );
+    }
+    
+    return null;
   };
 
   return (
@@ -244,34 +298,8 @@ const PendingTransactions = () => {
                   {/* User information - Now always displayed prominently */}
                   <UserInfoCard userInfo={userInfo} />
                   
-                  {/* Additional transaction details based on type */}
-                  {transaction.type === 'deposit' && transaction.screenshot && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium mb-1">لقطة الإثبات:</p>
-                      <img 
-                        src={transaction.screenshot} 
-                        alt="لقطة تحويل" 
-                        className="max-h-40 rounded-md border border-[#2A3348]" 
-                      />
-                    </div>
-                  )}
-                  
-                  {transaction.type === 'withdrawal' && transaction.recipient && (
-                    <div className="p-2 bg-[#242C3E] rounded-md text-sm space-y-1">
-                      {transaction.recipient.name && (
-                        <p>الاسم: {transaction.recipient.name}</p>
-                      )}
-                      {transaction.recipient.phoneNumber && (
-                        <p>الهاتف: {transaction.recipient.phoneNumber}</p>
-                      )}
-                      {transaction.recipient.province && (
-                        <p>المحافظة: {transaction.recipient.province}</p>
-                      )}
-                      {transaction.recipient.walletId && (
-                        <p>معرف المحفظة: {transaction.recipient.walletId}</p>
-                      )}
-                    </div>
-                  )}
+                  {/* Transaction-specific details */}
+                  {renderTransactionDetails(transaction)}
                   
                   <div className="flex gap-2 mt-4">
                     <Button 

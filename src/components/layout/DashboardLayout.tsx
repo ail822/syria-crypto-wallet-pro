@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -72,6 +71,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     { name: 'blue', label: 'أزرق', color: '#1E3A8A' },
     { name: 'green', label: 'أخضر', color: '#166534' },
     { name: 'purple', label: 'بنفسجي', color: '#581C87' }
+  ];
+
+  // في القائمة الرئيسية، أضف رابط شحن الألعاب
+  const mainNav = [
+    { name: "الرئيسية", href: "/" },
+    { name: "الإيداع", href: "/deposit" },
+    { name: "السحب", href: "/withdrawal" },
+    { name: "التحويل", href: "/convert" },
+    { name: "شحن الألعاب", href: "/games" },
   ];
 
   return (

@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { Transaction, Currency, WithdrawalMethod, DepositMethod, WithdrawalMethodType, ExchangeRate, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -698,8 +697,8 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
           });
         }
       } 
-      // Handle withdrawal rejection - return funds to user
-      else if (status === 'rejected' && transaction.type === 'withdrawal' && transaction.userId) {
+      // Handle withdrawal or game recharge rejection - return funds to user
+      else if (status === 'rejected' && (transaction.type === 'withdrawal' || transaction.type === 'game_recharge') && transaction.userId) {
         // Find the user in localStorage
         const allUsers = getAllUsers();
         const userToUpdate = allUsers.find(u => u.id === transaction.userId);
@@ -721,8 +720,10 @@ export const TransactionProvider: React.FC<{ children: ReactNode }> = ({ childre
             updateUser({ balances: updatedBalances });
           }
           
+          const transactionTypeText = transaction.type === 'withdrawal' ? 'طلب السحب' : 'طلب شحن اللعبة';
+          
           toast({
-            title: 'تم رفض طلب السحب',
+            title: `تم رفض ${transactionTypeText}`,
             description: `تمت إعادة ${transaction.amount} ${transaction.currency.toUpperCase()} إلى رصيد المستخدم`,
           });
         }
