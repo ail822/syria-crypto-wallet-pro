@@ -79,6 +79,7 @@ export interface DepositMethod {
   requiresImage: boolean;
   requiresTransactionId: boolean;
   createdAt: Date;
+  imageUrl?: string;
 }
 
 // Withdrawal method types
@@ -91,6 +92,7 @@ export interface WithdrawalMethodType {
   requiresApproval: boolean;
   feePercentage: number;
   createdAt: Date;
+  imageUrl?: string;
 }
 
 // Exchange rate types
@@ -103,6 +105,33 @@ export interface ExchangeRate {
   min_deposit_syp: number;
   min_withdrawal_usdt: number;
   min_withdrawal_syp: number;
+}
+
+// Game types
+export interface Game {
+  id: string;
+  name: string;
+  accountIdLabel: string;
+  price: number;
+  currency: Currency;
+  isActive: boolean;
+  imageUrl?: string;
+  imageFile?: File;
+  createdAt: Date;
+}
+
+// Social Links types
+export interface SocialLinks {
+  [key: string]: string;
+  facebook?: string;
+  youtube?: string;
+  telegram?: string;
+  whatsapp?: string;
+  instagram?: string;
+  twitter?: string;
+  email?: string;
+  phone?: string;
+  termsAndConditions?: string;
 }
 
 // Backup types

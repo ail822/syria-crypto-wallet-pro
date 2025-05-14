@@ -6,7 +6,7 @@ import AdminWithdrawalMethod from './AdminWithdrawalMethod';
 import CardSection from '../ui/card-section';
 import { DepositMethod, WithdrawalMethodType } from '@/types';
 
-// تعريف أنواع المدخلات لكل مكون
+// Define prop types to match the actual components
 interface AdminDepositMethodProps {
   depositMethods: DepositMethod[]; 
   onAddMethod: (newMethod: DepositMethod) => void;
@@ -18,9 +18,6 @@ interface AdminWithdrawalMethodProps {
   onAddMethod: (newMethod: WithdrawalMethodType) => void;
   onUpdateMethods: (updatedMethods: WithdrawalMethodType[]) => void;
 }
-
-// دعونا نتحقق من أن مكوناتنا الفرعية تتوقع هذه الواجهات
-// إذا كانت الأنواع المطلوبة مختلفة في المكونات الفعلية، فسنحتاج إلى تعديلها هنا
 
 const ManagePaymentMethods = () => {
   const [depositMethods, setDepositMethods] = useState<DepositMethod[]>([]);
@@ -71,3 +68,4 @@ const ManagePaymentMethods = () => {
 };
 
 export default ManagePaymentMethods;
+export type { AdminDepositMethodProps, AdminWithdrawalMethodProps };
