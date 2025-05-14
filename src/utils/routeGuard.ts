@@ -25,7 +25,13 @@ export const checkAuthBeforeNavigate = (
 
 // دالة لحل مشكلة إعادة توجيه المستخدمين إلى الصفحة الرئيسية بعد التنقل
 export const fixNavigationIssue = () => {
-  // تعطيل إعادة التوجيه التلقائي - نضيف هذه السطور لحل المشكلة
-  localStorage.removeItem('has_navigated');
-  return true;
+  // هذه الدالة تمنع إعادة التوجيه التلقائية من خلال التحقق من localStorage
+  const hasNavigated = localStorage.getItem('has_navigated');
+  
+  if (!hasNavigated) {
+    localStorage.setItem('has_navigated', 'true');
+    return true; // السماح بالتنقل الأول
+  }
+  
+  return false; // منع إعادة التوجيه التلقائي للصفحة الرئيسية
 };

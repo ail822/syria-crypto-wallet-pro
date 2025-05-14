@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
@@ -23,7 +23,7 @@ const TwoFactorVerify = () => {
   
   const { verifyToken, twoFactorData } = useTwoFactor(userId || '');
   
-  // إذا لم يتم توفير معرّف المستخدم، توجيه إلى صفحة تسجيل الدخول
+  // If no user ID is provided, redirect to login
   useEffect(() => {
     if (!userId) {
       navigate('/login');
@@ -41,17 +41,6 @@ const TwoFactorVerify = () => {
       setVerificationSent(true);
     }
   }, [userId, navigate, twoFactorData, verificationSent]);
-
-  // إضافة وظيفة للتخطي المباشر والعودة إلى الصفحة الرئيسية
-  const handleSkipVerification = () => {
-    // تخزين علامة للإشارة إلى نجاح التحقق
-    localStorage.setItem('2fa_verified', 'true');
-    localStorage.setItem('2fa_time', Date.now().toString());
-    
-    // التوجيه إلى المسار المطلوب
-    navigate(redirectTo);
-    toast({ title: "تم تخطي التحقق" });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,22 +132,12 @@ const TwoFactorVerify = () => {
               {isLoading ? "جارٍ التحقق..." : "تحقق"}
             </Button>
             
-            {/* إضافة زر لتخطي التحقق */}
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full mt-2" 
-              onClick={handleSkipVerification}
-            >
-              تخطي التحقق
-            </Button>
-            
             <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 واجهت مشكلة؟{" "}
-                <Link to="/login" className="text-primary hover:underline">
+                <a href="/login" className="text-primary hover:underline">
                   العودة لتسجيل الدخول
-                </Link>
+                </a>
               </p>
             </div>
           </form>

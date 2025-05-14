@@ -6,7 +6,7 @@ import AdminWithdrawalMethod from './AdminWithdrawalMethod';
 import CardSection from '../ui/card-section';
 import { DepositMethod, WithdrawalMethodType } from '@/types';
 
-// Define prop interfaces for our components
+// Define prop types to match the actual components
 interface AdminDepositMethodProps {
   depositMethods: DepositMethod[]; 
   onAddMethod: (newMethod: DepositMethod) => void;
