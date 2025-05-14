@@ -6,6 +6,7 @@ import AdminSettingsComponent from '@/components/admin/AdminSettings';
 import ManagePaymentMethods from '@/components/admin/ManagePaymentMethods';
 import DatabaseSettings from '@/components/admin/DatabaseSettings';
 import UserBalanceManager from '@/components/admin/UserBalanceManager';
+import UserManagement from '@/components/admin/UserManagement';
 import TelegramBotSettings from '@/components/admin/TelegramBotSettings';
 import CurrencyManager from '@/components/admin/CurrencyManager';
 import ExchangeRateForm from '@/components/admin/ExchangeRateForm';
@@ -46,6 +47,7 @@ const AdminSettings = () => {
             <TabsTrigger value="currency">العملات وأسعار الصرف</TabsTrigger>
             <TabsTrigger value="payment-methods">طرق الدفع</TabsTrigger>
             <TabsTrigger value="database">النسخ الاحتياطية</TabsTrigger>
+            <TabsTrigger value="users">إدارة المستخدمين</TabsTrigger>
             <TabsTrigger value="user-balance">إدارة أرصدة المستخدمين</TabsTrigger>
             <TabsTrigger value="telegram-bot">بوت التلغرام</TabsTrigger>
           </TabsList>
@@ -69,6 +71,10 @@ const AdminSettings = () => {
 
           <TabsContent value="database">
             <DatabaseSettings />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
           </TabsContent>
 
           <TabsContent value="user-balance">

@@ -1,49 +1,75 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import DashboardLayout from '@/components/layout/DashboardLayout';
-import { useAuth } from '@/context/AuthContext';
-import { useBalanceRefresh } from '@/hooks/useBalanceRefresh';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Game, Currency } from '@/types';
-import { Gamepad2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useTransaction } from '@/context/TransactionContext';
+import { Wallet, Gamepad2 } from 'lucide-react';
+import { User, Game, Currency } from '@/types';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 const GameRecharge = () => {
   const { user, isAuthenticated } = useAuth();
-  const { forceRefresh } = useBalanceRefresh();
-  const navigate = useNavigate();
-  
+  const { adjustUserBalance } = useTransaction();
   const [games, setGames] = useState<Game[]>([]);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [accountId, setAccountId] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currencies, setCurrencies] = useState<{id: string, name: string, symbol: string}[]>([]);
 
   useEffect(() => {
-    // Load games from localStorage
-    const storedGames = localStorage.getItem('games');
-    if (storedGames) {
-      try {
-        const parsedGames = JSON.parse(storedGames);
-        // Filter to show only active games
-        const activeGames = parsedGames
-          .filter((game: Game) => game.isActive)
-          .map((game: any) => ({
-            ...game,
-            createdAt: new Date(game.createdAt)
-          }));
-        setGames(activeGames);
-      } catch (error) {
-        console.error('Error parsing games data:', error);
-      }
-    }
+    loadGames();
+    loadCurrencies();
   }, []);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
+  const loadGames = () => {
+    try {
+      const gamesData = localStorage.getItem('games');
+      if (gamesData) {
+        const parsedGames = JSON.parse(gamesData);
+        // Filter only active games
+        const activeGames = parsedGames.filter((game: Game) => game.isActive);
+        setGames(activeGames);
+      } else {
+        // Default games if none found
+        setGames([]);
+      }
+    } catch (error) {
+      console.error('Error loading games:', error);
+    }
+  };
+
+  const loadCurrencies = () => {
+    try {
+      const savedCurrencies = localStorage.getItem('supportedCurrencies');
+      if (savedCurrencies) {
+        const currencyData = JSON.parse(savedCurrencies);
+        const activeCurrencies = currencyData.filter((c: any) => c.isActive);
+        setCurrencies(activeCurrencies.map((c: any) => ({
+          id: c.code,
+          name: c.name,
+          symbol: c.code.toUpperCase()
+        })));
+      } else {
+        setCurrencies([
+          { id: 'usdt', name: 'Tether USD', symbol: 'USDT' },
+          { id: 'syp', name: 'الليرة السورية', symbol: 'SYP' }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading currencies:', error);
+      setCurrencies([
+        { id: 'usdt', name: 'Tether USD', symbol: 'USDT' },
+        { id: 'syp', name: 'الليرة السورية', symbol: 'SYP' }
+      ]);
+    }
+  };
 
   const handleGameSelect = (game: Game) => {
     setSelectedGame(game);
@@ -51,209 +77,240 @@ const GameRecharge = () => {
   };
 
   const handleRecharge = async () => {
-    if (!selectedGame) return;
-    if (!accountId.trim()) {
+    if (!selectedGame) {
       toast({
-        title: "معرف الحساب مطلوب",
-        description: `يرجى إدخال ${selectedGame.accountIdLabel}`,
-        variant: "destructive"
+        title: "الرجاء اختيار لعبة",
+        variant: "destructive",
       });
       return;
     }
 
-    try {
-      setIsProcessing(true);
-      
-      // Check if user has sufficient balance
-      const currency = selectedGame.currency as Currency;
-      if (!user?.balances[currency] || user.balances[currency] < selectedGame.price) {
-        toast({
-          title: "رصيد غير كافٍ",
-          description: `ليس لديك رصيد كافٍ من ${currency.toUpperCase()} لإتمام العملية`,
-          variant: "destructive"
-        });
-        return;
-      }
+    if (!accountId) {
+      toast({
+        title: `الرجاء إدخال ${selectedGame.accountIdLabel || 'معرف الحساب'}`,
+        variant: "destructive",
+      });
+      return;
+    }
 
-      // Get transactions from localStorage
-      const transactionsJSON = localStorage.getItem('transactions') || '[]';
-      const transactions = JSON.parse(transactionsJSON);
-      
-      // Create new transaction
+    // Check user balance
+    if (!user || !user.balances || user.balances[selectedGame.currency as Currency] < selectedGame.price) {
+      toast({
+        title: "رصيدك غير كافٍ",
+        description: `الرجاء شحن رصيدك بعملة ${selectedGame.currency.toUpperCase()} ثم حاول مرة أخرى`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Generate transaction ID
+      const transactionId = `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Subtract from user balance
+      await adjustUserBalance(
+        user.email,
+        selectedGame.price,
+        selectedGame.currency as Currency,
+        'subtract'
+      );
+
+      // Create transaction record
       const newTransaction = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: transactionId,
         type: 'game_recharge',
         amount: selectedGame.price,
         currency: selectedGame.currency,
-        status: 'pending',
+        status: 'completed',
         timestamp: new Date(),
         userId: user.id,
         gameId: selectedGame.id,
         gameName: selectedGame.name,
         accountId: accountId
       };
-      
-      // Add transaction to the list
+
+      // Save transaction
+      const existingTransactions = localStorage.getItem('transactions_data');
+      const transactions = existingTransactions ? JSON.parse(existingTransactions) : [];
       transactions.push(newTransaction);
-      localStorage.setItem('transactions', JSON.stringify(transactions));
-      
+      localStorage.setItem('transactions_data', JSON.stringify(transactions));
+
       toast({
-        title: "تم إرسال طلب الشحن بنجاح",
-        description: "سيتم مراجعة طلبك وتنفيذه في أقرب وقت ممكن"
+        title: "تم شحن اللعبة بنجاح",
+        description: `تم شحن حساب اللعبة ${selectedGame.name} بنجاح`,
       });
-      
-      // Refresh user data to update balances
-      await forceRefresh();
-      
+
       // Reset form
       setSelectedGame(null);
       setAccountId('');
       
-      // Redirect to dashboard
-      navigate('/');
-      
     } catch (error) {
-      console.error('Error processing recharge:', error);
+      console.error('Error recharging game:', error);
       toast({
-        title: "حدث خطأ",
-        description: "تعذر إتمام عملية الشحن، يرجى المحاولة مرة أخرى",
-        variant: "destructive"
+        title: "فشل شحن اللعبة",
+        description: "حدث خطأ أثناء محاولة شحن اللعبة، يرجى المحاولة مرة أخرى",
+        variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
+  };
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  const getDefaultGameImage = () => {
+    return "/placeholder.svg";
   };
 
   return (
     <DashboardLayout>
-      <div className="animate-fade-in space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">شحن الألعاب</h1>
-          <Button onClick={() => navigate('/')} variant="outline">العودة للرئيسية</Button>
-        </div>
-
-        {selectedGame ? (
-          <Card className="border-[#2A3348] bg-[#1A1E2C]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-xl">شحن لعبة {selectedGame.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Game Info */}
-                <div className="md:col-span-1 flex flex-col items-center">
-                  <div className="mb-4 w-24 h-24 rounded-lg overflow-hidden border border-[#2A3348] flex items-center justify-center">
-                    {selectedGame.imageUrl ? (
-                      <img src={selectedGame.imageUrl} alt={selectedGame.name} className="object-cover w-full h-full" 
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100?text=Game';
-                        }}
-                      />
-                    ) : (
-                      <Gamepad2 className="text-muted-foreground w-12 h-12" />
-                    )}
+      <div className="animate-fade-in">
+        <h1 className="text-2xl font-bold mb-6">شحن الألعاب</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card className="bg-[#1A1E2C] border-[#2A3348] shadow-md">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl">اختر اللعبة</CardTitle>
+                  <Gamepad2 className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <CardDescription>
+                  اختر اللعبة التي تريد شحنها ثم أدخل معرف حسابك
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {games.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {games.map((game) => (
+                      <div
+                        key={game.id}
+                        onClick={() => handleGameSelect(game)}
+                        className={`border rounded-lg cursor-pointer transition-all p-3 ${
+                          selectedGame?.id === game.id
+                            ? 'border-[#9b87f5] bg-[#9b87f5]/10'
+                            : 'border-[#2A3348] hover:border-[#9b87f5] hover:bg-[#9b87f5]/5'
+                        }`}
+                      >
+                        {(game.imageUrl || game.imageFile) && (
+                          <div className="mb-3">
+                            <AspectRatio ratio={16 / 9} className="rounded-md overflow-hidden bg-[#242C3E]">
+                              <img 
+                                src={game.imageUrl || getDefaultGameImage()} 
+                                alt={game.name} 
+                                className="object-cover"
+                              />
+                            </AspectRatio>
+                          </div>
+                        )}
+                        <div className="text-center">
+                          <p className="font-medium">{game.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {game.price} {game.currency.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-center">
-                    <p className="text-lg font-medium">{selectedGame.name}</p>
+                ) : (
+                  <div className="text-center py-12">
+                    <Gamepad2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">
-                      {selectedGame.price} {selectedGame.currency.toUpperCase()}
+                      لا توجد ألعاب متاحة للشحن حالياً
                     </p>
                   </div>
-                </div>
-                
-                {/* Recharge Form */}
-                <div className="md:col-span-2 space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">{selectedGame.accountIdLabel}</label>
-                    <Input 
-                      value={accountId}
-                      onChange={(e) => setAccountId(e.target.value)}
-                      placeholder={`أدخل ${selectedGame.accountIdLabel}`}
-                      className="bg-[#242C3E] border-[#2A3348] text-white"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">التكلفة</label>
-                    <div className="p-3 bg-[#242C3E] rounded-md flex justify-between">
-                      <span>سعر الشحن</span>
-                      <span className="font-bold">{selectedGame.price} {selectedGame.currency.toUpperCase()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground">الرصيد المتاح</label>
-                    <div className="p-3 bg-[#242C3E] rounded-md flex justify-between">
-                      <span>رصيدك الحالي</span>
-                      <span className="font-bold">
-                        {user?.balances[selectedGame.currency as Currency] || 0} {selectedGame.currency.toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-4 pt-4">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => setSelectedGame(null)}
-                    >
-                      العودة إلى القائمة
-                    </Button>
-                    <Button 
-                      className="flex-1 bg-purple-600 hover:bg-purple-700"
-                      onClick={handleRecharge}
-                      disabled={isProcessing || !accountId.trim()}
-                    >
-                      {isProcessing ? "جاري التنفيذ..." : "تأكيد عملية الشحن"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {games.length === 0 ? (
-              <div className="text-center py-12">
-                <Gamepad2 className="mx-auto h-16 w-16 text-muted-foreground mb-4" />
-                <h2 className="text-2xl font-bold mb-2">لا توجد ألعاب متاحة حالياً</h2>
-                <p className="text-muted-foreground">
-                  ستظهر الألعاب المتاحة للشحن هنا. يرجى التحقق لاحقاً.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {games.map(game => (
-                  <Card 
-                    key={game.id} 
-                    className="border-[#2A3348] bg-[#1A1E2C] cursor-pointer hover:bg-[#242C3E] transition-colors"
-                    onClick={() => handleGameSelect(game)}
-                  >
-                    <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-                      <div className="w-20 h-20 rounded-lg overflow-hidden mb-4 border border-[#2A3348] flex items-center justify-center">
-                        {game.imageUrl ? (
-                          <img src={game.imageUrl} alt={game.name} className="object-cover w-full h-full" 
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80?text=Game';
-                            }}
-                          />
-                        ) : (
-                          <Gamepad2 className="text-muted-foreground w-10 h-10" />
-                        )}
+                )}
+
+                {selectedGame && (
+                  <div className="mt-6 p-4 border border-[#2A3348] rounded-lg">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-medium">{selectedGame.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            المبلغ: {selectedGame.price} {selectedGame.currency.toUpperCase()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedGame(null)}
+                        >
+                          تغيير اللعبة
+                        </Button>
                       </div>
-                      <h3 className="font-bold text-lg mb-1">{game.name}</h3>
-                      <p className="text-muted-foreground mb-4">
-                        {game.price} {game.currency.toUpperCase()}
-                      </p>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                        اختر
+
+                      <div className="space-y-2">
+                        <Label htmlFor="accountId">{selectedGame.accountIdLabel || 'معرف الحساب'}</Label>
+                        <Input
+                          id="accountId"
+                          placeholder={`أدخل ${selectedGame.accountIdLabel || 'معرف الحساب'}`}
+                          value={accountId}
+                          onChange={(e) => setAccountId(e.target.value)}
+                          className="bg-[#242C3E] border-[#2A3348]"
+                        />
+                      </div>
+
+                      <Button
+                        onClick={handleRecharge}
+                        className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]"
+                        disabled={isLoading || !accountId}
+                      >
+                        {isLoading ? "جارٍ تنفيذ الشحن..." : "شحن اللعبة"}
                       </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div>
+            <Card className="bg-[#1A1E2C] border-[#2A3348] shadow-md">
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-base">الرصيد الحالي</CardTitle>
+                  <Wallet className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                {currencies.map((currency) => {
+                  const balance = user?.balances[currency.id as Currency] || 0;
+                  return (
+                    <div 
+                      key={currency.id}
+                      className="flex justify-between items-center py-2 border-b border-[#2A3348] last:border-0"
+                    >
+                      <span>{currency.name}</span>
+                      <span className="font-mono font-medium">{balance} {currency.symbol}</span>
+                    </div>
+                  );
+                })}
+                
+                {selectedGame && (
+                  <div className="mt-4 p-3 bg-[#242C3E] rounded-lg">
+                    <div className="text-sm">
+                      <p className="mb-1">تكلفة الشحن:</p>
+                      <p className="font-medium text-lg">
+                        {selectedGame.price} {selectedGame.currency.toUpperCase()}
+                      </p>
+                      
+                      {user?.balances?.[selectedGame.currency as Currency] < selectedGame.price && (
+                        <p className="text-red-400 text-xs mt-2">
+                          رصيدك غير كافٍ لإتمام عملية الشحن
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );

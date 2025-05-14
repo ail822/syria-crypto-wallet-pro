@@ -5,69 +5,61 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-import { Facebook, Instagram, Twitter, MessageCircle, Mail, Phone, Bookmark } from 'lucide-react';
-import { usePlatform } from '@/context/PlatformContext';
-import CardSection from '@/components/ui/card-section';
-import { sendTelegramMessage } from '@/utils/telegramBot';
+import CardSection from '../ui/card-section';
 import { SocialLinks } from '@/types';
+import { Facebook, Instagram, Mail, MessageCircle, Phone, Twitter, Check } from 'lucide-react';
+
+const defaultSocialLinks: SocialLinks = {
+  facebook: '',
+  youtube: '',
+  telegram: '',
+  whatsapp: '',
+  instagram: '',
+  twitter: '',
+  email: '',
+  phone: '',
+  termsAndConditions: ''
+};
 
 const SocialLinksSettings = () => {
-  const { socialLinks, updateSocialLinks } = usePlatform();
-  const [links, setLinks] = useState<SocialLinks>({
-    facebook: '',
-    youtube: '',
-    telegram: '',
-    whatsapp: '',
-    instagram: '',
-    twitter: '',
-    email: '',
-    phone: '',
-    termsAndConditions: ''
-  });
+  const [socialLinks, setSocialLinks] = useState<SocialLinks>(defaultSocialLinks);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (socialLinks) {
-      setLinks({
-        facebook: socialLinks.facebook || '',
-        youtube: socialLinks.youtube || '',
-        telegram: socialLinks.telegram || '',
-        whatsapp: socialLinks.whatsapp || '',
-        instagram: socialLinks.instagram || '',
-        twitter: socialLinks.twitter || '',
-        email: socialLinks.email || '',
-        phone: socialLinks.phone || '',
-        termsAndConditions: socialLinks.termsAndConditions || ''
-      });
+    // Load saved social links
+    try {
+      const savedLinks = localStorage.getItem('social_links');
+      if (savedLinks) {
+        setSocialLinks(JSON.parse(savedLinks));
+      }
+    } catch (error) {
+      console.error('Error loading social links:', error);
     }
-  }, [socialLinks]);
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setSocialLinks(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSave = () => {
     try {
       setIsLoading(true);
+      // Save to localStorage
+      localStorage.setItem('social_links', JSON.stringify(socialLinks));
       
-      updateSocialLinks(links);
-      
-      // Send backup to Telegram
-      await sendTelegramMessage(`🔗 *تحديث روابط التواصل الاجتماعي*\n\n` +
-        `📘 فيسبوك: ${links.facebook || 'لا يوجد'}\n` +
-        `📺 يوتيوب: ${links.youtube || 'لا يوجد'}\n` +
-        `📲 تلغرام: ${links.telegram || 'لا يوجد'}\n` +
-        `☎️ واتساب: ${links.whatsapp || 'لا يوجد'}\n` +
-        `📷 إنستغرام: ${links.instagram || 'لا يوجد'}\n` +
-        `🐦 تويتر: ${links.twitter || 'لا يوجد'}\n` +
-        `📧 البريد الإلكتروني: ${links.email || 'لا يوجد'}\n` +
-        `📱 رقم الهاتف: ${links.phone || 'لا يوجد'}\n\n` +
-        `⏱️ وقت التحديث: ${new Date().toLocaleString('ar-SA')}`
-      );
-      
-      toast({ title: "تم تحديث روابط التواصل الاجتماعي بنجاح" });
-    } catch (error) {
       toast({
-        title: "فشل تحديث الروابط",
-        description: "حدث خطأ أثناء تحديث روابط التواصل الاجتماعي",
+        title: "تم حفظ الإعدادات",
+        description: "تم تحديث روابط التواصل الاجتماعي بنجاح",
+      });
+    } catch (error) {
+      console.error('Error saving social links:', error);
+      toast({
+        title: "فشل حفظ الإعدادات",
+        description: "حدث خطأ أثناء حفظ البيانات",
         variant: "destructive",
       });
     } finally {
@@ -76,143 +68,136 @@ const SocialLinksSettings = () => {
   };
 
   return (
-    <CardSection title="إعدادات روابط التواصل الاجتماعي">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* وسائل التواصل الاجتماعي */}
-          <div className="space-y-2">
-            <Label htmlFor="facebook" className="flex items-center gap-2">
-              <Facebook className="h-4 w-4" /> فيسبوك
-            </Label>
-            <Input
-              id="facebook"
-              value={links.facebook}
-              onChange={(e) => setLinks({...links, facebook: e.target.value})}
-              placeholder="https://facebook.com/yourpage"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
+    <CardSection title="روابط التواصل الاجتماعي">
+      <div className="space-y-6">
+        {/* Contact Information */}
+        <div className="space-y-4">
+          <h3 className="font-medium">معلومات التواصل</h3>
           
-          <div className="space-y-2">
-            <Label htmlFor="instagram" className="flex items-center gap-2">
-              <Instagram className="h-4 w-4" /> إنستغرام
-            </Label>
-            <Input
-              id="instagram"
-              value={links.instagram}
-              onChange={(e) => setLinks({...links, instagram: e.target.value})}
-              placeholder="https://instagram.com/youraccount"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="twitter" className="flex items-center gap-2">
-              <Twitter className="h-4 w-4" /> تويتر
-            </Label>
-            <Input
-              id="twitter"
-              value={links.twitter}
-              onChange={(e) => setLinks({...links, twitter: e.target.value})}
-              placeholder="https://twitter.com/youraccount"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="telegram" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" /> تلغرام
-            </Label>
-            <Input
-              id="telegram"
-              value={links.telegram}
-              onChange={(e) => setLinks({...links, telegram: e.target.value})}
-              placeholder="https://t.me/yourusername"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" /> واتساب
-            </Label>
-            <Input
-              id="whatsapp"
-              value={links.whatsapp}
-              onChange={(e) => setLinks({...links, whatsapp: e.target.value})}
-              placeholder="https://wa.me/1234567890"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="youtube" className="flex items-center gap-2">
-              <Twitter className="h-4 w-4" /> يوتيوب
-            </Label>
-            <Input
-              id="youtube"
-              value={links.youtube}
-              onChange={(e) => setLinks({...links, youtube: e.target.value})}
-              placeholder="https://youtube.com/yourchannel"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-          </div>
-          
-          {/* معلومات الاتصال */}
-          <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center gap-2">
-              <Mail className="h-4 w-4" /> البريد الإلكتروني
-            </Label>
-            <Input
-              id="email"
-              value={links.email}
-              onChange={(e) => setLinks({...links, email: e.target.value})}
-              placeholder="info@example.com"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-            <p className="text-xs text-muted-foreground">
-              يُستخدم في صفحة "تواصل معنا" وعند إرسال الرسائل
-            </p>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" /> رقم الهاتف
-            </Label>
-            <Input
-              id="phone"
-              value={links.phone}
-              onChange={(e) => setLinks({...links, phone: e.target.value})}
-              placeholder="+963123456789"
-              className="bg-[#242C3E] border-[#2A3348] text-white"
-            />
-            <p className="text-xs text-muted-foreground">
-              يُعرض في صفحة "تواصل معنا" وللاتصال المباشر
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">البريد الإلكتروني</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  name="email"
+                  value={socialLinks.email}
+                  onChange={handleInputChange}
+                  placeholder="أدخل البريد الإلكتروني للتواصل"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="phone">رقم الهاتف</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={socialLinks.phone}
+                  onChange={handleInputChange}
+                  placeholder="أدخل رقم الهاتف للتواصل"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
           </div>
         </div>
         
-        {/* شروط الاستخدام */}
+        {/* Social Media Links */}
+        <div className="space-y-4">
+          <h3 className="font-medium">روابط مواقع التواصل الاجتماعي</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="facebook">فيسبوك</Label>
+              <div className="relative">
+                <Facebook className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="facebook"
+                  name="facebook"
+                  value={socialLinks.facebook}
+                  onChange={handleInputChange}
+                  placeholder="رابط صفحة الفيسبوك"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="telegram">تلغرام</Label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="telegram"
+                  name="telegram"
+                  value={socialLinks.telegram}
+                  onChange={handleInputChange}
+                  placeholder="رابط قناة التلغرام أو معرّف البوت"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="instagram">انستغرام</Label>
+              <div className="relative">
+                <Instagram className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="instagram"
+                  name="instagram"
+                  value={socialLinks.instagram}
+                  onChange={handleInputChange}
+                  placeholder="رابط حساب انستغرام"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="twitter">تويتر</Label>
+              <div className="relative">
+                <Twitter className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="twitter"
+                  name="twitter"
+                  value={socialLinks.twitter}
+                  onChange={handleInputChange}
+                  placeholder="رابط حساب تويتر"
+                  className="pl-10 bg-[#242C3E] border-[#2A3348]"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Terms and Conditions */}
         <div className="space-y-2">
-          <Label htmlFor="termsAndConditions" className="flex items-center gap-2">
-            <Bookmark className="h-4 w-4" /> شروط الاستخدام وسياسة الخصوصية
-          </Label>
+          <Label htmlFor="termsAndConditions">شروط الاستخدام وسياسة الخصوصية</Label>
           <Textarea
             id="termsAndConditions"
-            value={links.termsAndConditions}
-            onChange={(e) => setLinks({...links, termsAndConditions: e.target.value})}
-            placeholder="أدخل نص شروط الاستخدام وسياسة الخصوصية..."
-            className="bg-[#242C3E] border-[#2A3348] text-white min-h-[200px]"
+            name="termsAndConditions"
+            value={socialLinks.termsAndConditions}
+            onChange={handleInputChange}
+            placeholder="أدخل نص شروط الاستخدام وسياسة الخصوصية"
+            className="min-h-32 bg-[#242C3E] border-[#2A3348]"
           />
-          <p className="text-xs text-muted-foreground">
-            سيتم عرض هذا النص في صفحة الشروط والأحكام
-          </p>
         </div>
         
-        <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
-          {isLoading ? "جارٍ التحديث..." : "حفظ الروابط"}
+        <Button 
+          onClick={handleSave} 
+          className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Check className="mr-2 h-4 w-4" />
+          ) : null}
+          {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
         </Button>
-      </form>
+      </div>
     </CardSection>
   );
 };

@@ -17,6 +17,7 @@ import Admin from "./pages/Admin";
 import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import Landing from "./pages/Landing";
+import Home from "./pages/Home";
 import TwoFactorVerify from "./pages/TwoFactorVerify";
 import About from "./pages/About";
 import GameRecharge from "./pages/GameRecharge";
@@ -36,7 +37,7 @@ const App = () => (
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  <Route path="/home" element={<Landing />} />
+                  <Route path="/home" element={<Home />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />

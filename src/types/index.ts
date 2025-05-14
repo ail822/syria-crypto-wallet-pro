@@ -1,64 +1,75 @@
 
+// User related types
 export interface User {
   id: string;
-  name: string;
   email: string;
-  telegramId?: string;
+  name: string;
   phoneNumber?: string;
+  telegramId?: string;
+  isAdmin: boolean;
   profileImage?: string;
   balances: {
-    usdt: number;
-    syp: number;
+    [key: string]: number; // Dynamic currencies
   };
+  twoFactorEnabled?: boolean;
 }
 
-export type Currency = 'usdt' | 'syp' | string;
+// Authentication related types
+export type AuthStatus = 'authenticated' | 'unauthenticated';
 
-export type Transaction = {
+// Currency types
+export type Currency = string;
+
+export interface CurrencyItem {
+  code: string;
+  name: string;
+  exchangeRate: number;
+  isActive: boolean;
+  minDeposit: number;
+  minWithdrawal: number;
+}
+
+// Transaction related types
+export type TransactionType = 'deposit' | 'withdrawal' | 'conversion' | 'game_recharge';
+export type TransactionStatus = 'pending' | 'completed' | 'rejected';
+export type WithdrawalMethod = 'c-wallet' | 'province' | 'mtn' | 'syriatel';
+
+export interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'conversion' | 'game_recharge';
+  type: TransactionType;
   amount: number;
   currency: Currency;
-  targetCurrency?: Currency;
-  targetAmount?: number;
-  status: 'pending' | 'completed' | 'rejected';
+  status: TransactionStatus;
   timestamp: Date;
+  userId?: string;
+  
+  // For deposit transactions
+  screenshot?: string;
+  walletId?: string;
+  depositMethodId?: string;
+  transactionId?: string;
+  
+  // For withdrawal transactions
   withdrawalMethod?: WithdrawalMethod;
   withdrawalMethodId?: string;
-  depositMethodId?: string;
-  screenshot?: string;
-  transactionId?: string;
   recipient?: {
     name?: string;
     phoneNumber?: string;
     province?: string;
     walletId?: string;
   };
-  userId?: string;
+  
+  // For conversion transactions
+  targetCurrency?: Currency;
+  targetAmount?: number;
+  
+  // For game recharge transactions
   gameId?: string;
   gameName?: string;
   accountId?: string;
-};
-
-export type WithdrawalMethod = 'province' | 'mtn' | 'syriatel' | 'c-wallet';
-
-export interface ExchangeRate {
-  usdt_to_syp: number;
-  syp_to_usdt: number;
-  fee_percentage: number;
-  enabled: boolean;
-  min_deposit_usdt: number; 
-  min_deposit_syp: number;
-  min_withdrawal_usdt: number;
-  min_withdrawal_syp: number;
 }
 
-export interface AdminSettings {
-  exchangeRates: ExchangeRate;
-  telegramBotToken: string;
-  telegramBotUsername: string;
-}
-
+// Deposit method types
 export interface DepositMethod {
   id: string;
   name: string;
@@ -68,8 +79,10 @@ export interface DepositMethod {
   requiresImage: boolean;
   requiresTransactionId: boolean;
   createdAt: Date;
+  imageUrl?: string;
 }
 
+// Withdrawal method types
 export interface WithdrawalMethodType {
   id: string;
   name: string;
@@ -79,8 +92,22 @@ export interface WithdrawalMethodType {
   requiresApproval: boolean;
   feePercentage: number;
   createdAt: Date;
+  imageUrl?: string;
 }
 
+// Exchange rate types
+export interface ExchangeRate {
+  usdt_to_syp: number;
+  syp_to_usdt: number;
+  fee_percentage: number;
+  enabled: boolean;
+  min_deposit_usdt: number;
+  min_deposit_syp: number;
+  min_withdrawal_usdt: number;
+  min_withdrawal_syp: number;
+}
+
+// Game types
 export interface Game {
   id: string;
   name: string;
@@ -89,9 +116,11 @@ export interface Game {
   currency: Currency;
   isActive: boolean;
   imageUrl?: string;
+  imageFile?: File;
   createdAt: Date;
 }
 
+// Social Links types
 export interface SocialLinks {
   [key: string]: string;
   facebook?: string;
@@ -105,12 +134,13 @@ export interface SocialLinks {
   termsAndConditions?: string;
 }
 
+// Backup types
 export interface BackupData {
   users: User[];
   transactions: Transaction[];
   exchangeRate: ExchangeRate;
   depositMethods: DepositMethod[];
   withdrawalMethods: WithdrawalMethodType[];
-  currencies: any[];
+  currencies: CurrencyItem[];
   createdAt: string;
 }
