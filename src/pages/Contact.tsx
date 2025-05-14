@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
-import { Mail, MessageCircle, Phone, User, Send } from 'lucide-react';
+import { Mail, MessageCircle, Phone, User, Send, Facebook, Instagram, Twitter } from 'lucide-react';
 import { SocialLinks } from '@/types';
 import { usePlatform } from '@/context/PlatformContext';
 
