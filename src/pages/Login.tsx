@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
 import { usePlatform } from '@/context/PlatformContext';
 import { useAuth } from '@/context/AuthContext';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [skipTelegramVerify, setSkipTelegramVerify] = useState(false);
   
   const navigate = useNavigate();
   const { platformName } = usePlatform();
@@ -29,7 +31,8 @@ const Login = () => {
       setIsLoading(true);
       const result = await login(email, password);
       
-      if (result.requiresTwoFactor) {
+      // تخطي التحقق بالتلجرام إذا تم اختياره
+      if (result.requiresTwoFactor && !skipTelegramVerify) {
         // Redirect to 2FA page
         navigate('/verify-2fa', { 
           state: { 
@@ -41,7 +44,7 @@ const Login = () => {
         return;
       }
       
-      // If login successful and no 2FA required, 
+      // If login successful and no 2FA required, or if skipped
       // navigation will happen automatically
       
     } catch (error) {
@@ -107,6 +110,18 @@ const Login = () => {
                 className="bg-[#242C3E] border-[#2A3348] text-white"
                 autoComplete="current-password"
               />
+            </div>
+            
+            {/* إضافة خيار تخطي التحقق بالتلجرام */}
+            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+              <Checkbox 
+                id="skipTelegramVerify" 
+                checked={skipTelegramVerify}
+                onCheckedChange={(checked) => setSkipTelegramVerify(checked === true)}
+              />
+              <Label htmlFor="skipTelegramVerify" className="text-sm cursor-pointer">
+                تخطي التحقق عبر تلجرام
+              </Label>
             </div>
             
             <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
